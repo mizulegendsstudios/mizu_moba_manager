@@ -1,12 +1,16 @@
-// standingsAndBracket.js
+// scr/js/standingsAndBracket.js
 const StandingsAndBracket = (function() {
-    // Tabla de posiciones
     let standings = [];
-
-    // Bracket final
     let bracket = [];
 
-    // Inicializa la tabla de posiciones
+    // Carga los datos de la tabla de posiciones desde un guardado
+    function loadStandings(data) {
+        if (data) {
+            standings = data;
+        }
+    }
+
+    // Inicializa la tabla de posiciones con los equipos
     function initializeStandings(teams) {
         standings = teams.map(team => ({
             teamId: team.id,
@@ -28,7 +32,6 @@ const StandingsAndBracket = (function() {
                 teamStanding.points += 1;
             }
         }
-        // Ordena la tabla por puntos
         standings.sort((a, b) => b.points - a.points);
     }
 
@@ -38,7 +41,6 @@ const StandingsAndBracket = (function() {
         bracket = [
             { matchId: 1, team1: topTeams[0].teamId, team2: topTeams[1].teamId, winner: null },
             { matchId: 2, team1: topTeams[2].teamId, team2: topTeams[3].teamId, winner: null },
-            // Final entre los ganadores de los partidos anteriores
             { matchId: 3, team1: null, team2: null, winner: null }
         ];
     }
@@ -54,6 +56,7 @@ const StandingsAndBracket = (function() {
     }
 
     return {
+        loadStandings,
         initializeStandings,
         updateStandings,
         generateBracket,
