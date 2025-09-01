@@ -1,3 +1,4 @@
+/* src/css/core.css */
 body {
     font-family: 'Inter', sans-serif;
     background-color: #0d1117;
@@ -66,7 +67,4 @@ body {
 @keyframes slideIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
-}
-.tab-btn.active {
-  @apply bg-[#1e232b] border-b-2 border-[#0e7490];
 }
