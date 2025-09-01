@@ -1,6 +1,3 @@
-
-
-```markdown
 # 🎮 Mizu Esports Simulator
 
 ## 📜 Descripción
