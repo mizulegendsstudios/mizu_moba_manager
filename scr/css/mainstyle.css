@@ -67,3 +67,6 @@ body {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+.tab-btn.active {
+  @apply bg-[#1e232b] border-b-2 border-[#0e7490];
+}
