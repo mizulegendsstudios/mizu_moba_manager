@@ -1,518 +1,925 @@
 // src/js/core.js
-const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel", "Fernando", "Carla", "Miguel", "Andrea"];
-const lastNames = ["García", "Rodríguez", "López", "Martínez", "Pérez", "González", "Sánchez", "Romero", "Díaz", "Torres", "Ramírez", "Flores", "Gómez", "Morales", "Ortiz", "Navarro", "Jiménez", "Ruiz", "Hernández", "Cruz"];
-const nationalities = [
-    "Argentina 🇦🇷", "Brasil 🇧🇷", "Canadá 🇨🇦", "Chile 🇨🇱", "Colombia 🇨🇴", "México 🇲🇽", "España 🇪🇸", "EE. UU. 🇺🇸", "Japón 🇯🇵", "Corea del Sur 🇰🇷",
-    "Panamá 🇵🇦", "Costa Rica 🇨🇷", "Guatemala 🇬🇹", "Honduras 🇭🇳", "El Salvador 🇸🇻", "Nicaragua 🇳🇮"
-];
-const attributes = ["vision", "reflexes", "communication", "tecnologia", "teamwork", "mood"];
-const teamNames = ["Los Dragones 🐉", "La Hermandad 🛡️", "Los Espectros 👻", "La Élite 👑", "Los Titanes ⛰️", "Las Sombras 🌑"];
-const playerEmojis = ["🥷", "🧙‍♀️", "🏹", "🗡️", "🛡️", "🤖", "👹", "👽", "🦄", "🐼"];
-let playerIdCounter = 1;
-let userTeamIndex = 0;
+        // Data for random generation of players and teams
+        const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel", "Fernando", "Carla", "Miguel", "Andrea"];
+        const lastNames = ["García", "Rodríguez", "López", "Martínez", "Pérez", "González", "Sánchez", "Romero", "Díaz", "Torres", "Ramírez", "Flores", "Gómez", "Morales", "Ortiz", "Navarro", "Jiménez", "Ruiz", "Hernández", "Cruz"];
+        const nationalities = [
+            "Argentina 🇦🇷", "Brasil 🇧🇷", "Canadá 🇨🇦", "Chile 🇨🇱", "Colombia 🇨🇴", "México 🇲🇽", "España 🇪🇸", "EE. UU. 🇺🇸", "Japón 🇯🇵", "Corea del Sur 🇰🇷",
+            "Panamá 🇵🇦", "Costa Rica 🇨🇷", "Guatemala 🇬🇹", "Honduras 🇭🇳", "El Salvador 🇸🇻", "Nicaragua 🇳🇮"
+        ];
+        const attributes = ["vision", "reflexes", "communication", "tecnologia", "teamwork", "mood"];
+        
+        const teamNames = ["Los Dragones 🐉", "La Hermandad 🛡️", "Los Espectros 👻", "La Élite 👑", "Los Titanes ⛰️", "Las Sombras 🌑"];
+        const playerEmojis = ["🥷", "🧙‍♀️", "🏹", "🗡️", "🛡️", "🤖", "👹", "👽", "🦄", "🐼"];
 
-// Estado del juego
-let gameState = {
-    teams: [],
-    schedule: [],
-    results: [],
-    currentWeek: 0,
-    season: 1,
-    bracket: {
-        phase: 'regular',
-        pendingMatches: [],
-        wbHistory: [],
-        lbHistory: [],
-        gfHistory: [],
-        winner: null
-    }
-};
-let tournamentStats = { first: 0, second: 0, third: 0, total: 0 };
-let userTeamHistory = [];
-
-// Referencias a los elementos del DOM
-const nextStepBtn = document.getElementById('next-step-btn');
-const newSeasonBtn = document.getElementById('new-season-btn');
-const tabButtons = document.querySelectorAll('.tab-btn');
-const gameLog = document.getElementById('game-log');
-const leagueStandingsDiv = document.getElementById('league-standings');
-const bracketTabBtn = document.getElementById('bracket-tab-btn');
-const teamManagementDiv = document.getElementById('team-management-content');
-const participantsContainer = document.getElementById('all-teams-container');
-const teamNameInput = document.getElementById('team-name-input');
-const teamEmojiInput = document.getElementById('team-emoji-input');
-const updateTeamBtn = document.getElementById('update-team-btn');
-const starterPlayersDiv = document.getElementById('starter-players');
-const availablePlayersDiv = document.getElementById('available-players');
-const starterCountSpan = document.getElementById('starter-count');
-const matchResultsContainer = document.getElementById('match-results-container');
-const currentWeekSpan = document.getElementById('current-week');
-const tournamentTotalSpan = document.getElementById('tournaments-total');
-const tournament1stSpan = document.getElementById('tournaments-1st');
-const tournament2ndSpan = document.getElementById('tournaments-2nd');
-const tournament3rdSpan = document.getElementById('tournaments-3rd');
-const matchHistoryList = document.getElementById('match-history-list');
-const notificationModal = document.getElementById('notification-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalContent = document.getElementById('modal-content');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const wikiContentDiv = document.getElementById('wiki-content');
-
-// Funciones de la lógica del juego
-function createPlayer() {
-    const player = {
-        id: playerIdCounter++,
-        name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
-        emoji: playerEmojis[Math.floor(Math.random() * playerEmojis.length)],
-        nationality: nationalities[Math.floor(Math.random() * nationalities.length)],
-        attributes: {}
-    };
-    attributes.forEach(attr => {
-        player.attributes[attr] = Math.floor(Math.random() * 100) + 1;
-    });
-    return player;
-}
-
-function generateTeamsAndPlayers() {
-    for (let i = 0; i < teamNames.length; i++) {
-        const teamName = teamNames[i];
-        const teamKey = teamName.split(" ")[0] + teamName.split(" ")[1].replace(/\p{Emoji}/u, '');
-        const team = {
-            name: teamName,
-            key: teamKey,
-            players: [],
-            starters: [],
-            wins: 0,
-            losses: 0,
-            gamesWon: 0,
-            gamesLost: 0,
-            points: 0,
-            emoji: teamName.split(" ").pop(),
-            bracketLosses: 0,
-            isUserTeam: i === userTeamIndex,
+        let userTeamIndex = 0;
+        let playerIdCounter = 1;
+        
+        // Initial game state
+        let gameState = {
+            teams: [],
+            schedule: [],
+            results: [],
+            currentWeek: 0,
+            season: 1,
+            bracket: {
+                phase: 'regular',
+                pendingMatches: [],
+                wbHistory: [],
+                lbHistory: [],
+                gfHistory: [],
+                winner: null
+            }
         };
-        for (let j = 0; j < 10; j++) {
-            team.players.push(createPlayer());
-        }
-        gameState.teams.push(team);
-    }
-}
 
-function generateSchedule() {
-    const numTeams = gameState.teams.length;
-    const pairings = [];
-    for (let i = 0; i < numTeams; i++) {
-        for (let j = i + 1; j < numTeams; j++) {
-            pairings.push([i, j]);
-        }
-    }
-    gameState.schedule = pairings.sort(() => Math.random() - 0.5);
-    
-    const totalWeeks = (numTeams * (numTeams - 1)) / 2 / (numTeams / 2);
-    const matchesPerWeek = numTeams / 2;
-    const weeklySchedule = [];
-    
-    for (let w = 0; w < totalWeeks; w++) {
-        weeklySchedule.push(gameState.schedule.splice(0, matchesPerWeek));
-    }
-    gameState.schedule = weeklySchedule;
-}
-
-function simulateGame(team1, team2) {
-    const team1Power = team1.starters.reduce((sum, player) => {
-        return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
-    }, 0);
-    const team2Power = team2.starters.reduce((sum, player) => {
-        return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
-    }, 0);
-    
-    let winner;
-    const powerDiff = Math.abs(team1Power - team2Power);
-    const weakerTeamChance = Math.max(0, 0.5 - (powerDiff / 500));
-    if (team1Power > team2Power) {
-        winner = (Math.random() < weakerTeamChance) ? team2.key : team1.key;
-    } else {
-        winner = (Math.random() < weakerTeamChance) ? team1.key : team2.key;
-    }
-    return winner;
-}
-
-function simulateMatch(team1, team2, isBracket = false) {
-    if (!team1 || !team2) {
-        return null;
-    }
-    
-    if (!team1.isUserTeam && team1.starters.length === 0) {
-        team1.starters = team1.players.sort(() => 0.5 - Math.random()).slice(0, 5);
-    }
-    if (!team2.isUserTeam && team2.starters.length === 0) {
-        team2.starters = team2.players.sort(() => 0.5 - Math.random()).slice(0, 5);
-    }
-    let gamesWon1 = 0;
-    let gamesWon2 = 0;
-    let winnerKey = null;
-    let loserKey = null;
-    for(let i = 0; i < 3; i++) {
-        if (gamesWon1 === 2 || gamesWon2 === 2) {
-            break;
-        }
-        const gameWinnerKey = simulateGame(team1, team2);
-        if (gameWinnerKey === team1.key) {
-            gamesWon1++;
-        } else {
-            gamesWon2++;
-        }
-    }
-    
-    if (gamesWon1 > gamesWon2) {
-        winnerKey = team1.key;
-        loserKey = team2.key;
-    } else {
-        winnerKey = team2.key;
-        loserKey = team1.key;
-    }
-    
-    if (team1.isUserTeam || team2.isUserTeam) {
-        const userTeam = gameState.teams.find(t => t.isUserTeam);
-        userTeamHistory.push({
-            opponent: winnerKey === userTeam.key ? team2.name : team1.name,
-            result: winnerKey === userTeam.key ? "Victoria" : "Derrota",
-            gameScore: `${gamesWon1}-${gamesWon2}`,
-            round: isBracket ? `T${gameState.season}-${gameState.bracket.phase}` : `T${gameState.season}-Jornada ${gameState.currentWeek + 1}`
-        });
-    }
-    return { winnerKey, loserKey, gamesWon1, gamesWon2 };
-}
-
-function startNewSeason() {
-    gameState.season++;
-    gameState.currentWeek = 0;
-    gameState.schedule = [];
-    gameState.results = [];
-    gameState.bracket.phase = 'regular';
-    gameState.bracket.pendingMatches = [];
-    gameState.bracket.wbHistory = [];
-    gameState.bracket.lbHistory = [];
-    gameState.bracket.gfHistory = [];
-    gameState.bracket.winner = null;
-    
-    gameState.teams.forEach(team => {
-        team.wins = 0;
-        team.losses = 0;
-        team.gamesWon = 0;
-        team.gamesLost = 0;
-        team.points = 0;
-        team.bracketLosses = 0;
-    });
-    
-    tournamentStats.total++;
-    
-    generateSchedule();
-}
-
-// Funciones de la UI
-function renderPlayerCard(player, isStarter) {
-    const card = document.createElement('div');
-    card.className = `player-card p-4 bg-[#23262d] rounded-xl border border-[#30363d] cursor-pointer hover:bg-[#2c323b] transition-colors duration-200 flex-shrink-0 relative`;
-    card.dataset.id = player.id;
-    card.innerHTML = `
-        <div class="player-card-content">
-            <div>
-                <span class="absolute top-2 right-2 text-xl">${player.emoji}</span>
-                <h4 class="font-bold text-lg mb-1 text-white">${player.name}</h4>
-                <p class="text-xs text-gray-400">${player.nationality}</p>
-                <ul class="text-xs mt-2 space-y-1 text-gray-300">
-                    <li>👁️ Visión: ${player.attributes.vision}</li>
-                    <li>⚡ Reflejos: ${player.attributes.reflexes}</li>
-                    <li>💬 Comunicación: ${player.attributes.communication}</li>
-                    <li>💻 Tecnología: ${player.attributes.tecnologia}</li>
-                    <li>🤝 Trabajo en equipo: ${player.attributes.teamwork}</li>
-                    <li>🧘 Estado de ánimo: ${player.attributes.mood}</li>
-                </ul>
-            </div>
-            <div class="mt-4 flex justify-between items-center text-xs text-gray-400">
-                <span>${isStarter ? 'Titular' : 'Suplente'}</span>
-                <button class="player-toggle-btn px-2 py-1 rounded-full text-white font-semibold text-xs ${isStarter ? 'bg-red-600' : 'bg-green-600'}">
-                    ${isStarter ? 'Quitar' : 'Añadir'}
-                </button>
-            </div>
-        </div>
-    `;
-    return card;
-}
-
-function renderUI() {
-    const userTeam = gameState.teams.find(t => t.isUserTeam);
-    const teams = gameState.teams;
-
-    // Renderizar la tabla de la liga
-    const sortedTeams = [...teams].sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        return b.gamesWon - a.gamesWon;
-    });
-
-    leagueStandingsDiv.innerHTML = `
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-[#23262d]">
-                    <th class="p-4 rounded-tl-lg">#</th>
-                    <th>Equipo</th>
-                    <th>G</th>
-                    <th>P</th>
-                    <th>Juegos G</th>
-                    <th class="rounded-tr-lg">Juegos P</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${sortedTeams.map((team, index) => `
-                    <tr class="${team.isUserTeam ? 'bg-[#30363d] text-white font-bold' : ''} hover:bg-[#2c323b]">
-                        <td class="p-4">${index + 1}</td>
-                        <td>${team.emoji} ${team.name}</td>
-                        <td>${team.wins}</td>
-                        <td>${team.losses}</td>
-                        <td>${team.gamesWon}</td>
-                        <td>${team.gamesLost}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-
-    // Renderizar la gestión del equipo
-    if (userTeam) {
-        teamNameInput.value = userTeam.name;
-        teamEmojiInput.value = userTeam.emoji;
-
-        starterPlayersDiv.innerHTML = userTeam.starters.map(player => renderPlayerCard(player, true).outerHTML).join('');
-        availablePlayersDiv.innerHTML = userTeam.players.filter(player => !userTeam.starters.includes(player)).map(player => renderPlayerCard(player, false).outerHTML).join('');
-        starterCountSpan.textContent = `${userTeam.starters.length}/5`;
-    }
-
-    // Renderizar la lista de todos los equipos
-    participantsContainer.innerHTML = teams.map(team => `
-        <div class="bg-[#23262d] p-4 rounded-xl border border-[#30363d]">
-            <h3 class="font-bold text-lg mb-2">${team.emoji} ${team.name}</h3>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                ${team.players.map(player => renderPlayerCard(player, false).outerHTML).join('')}
-            </div>
-        </div>
-    `).join('');
-
-    // Renderizar el historial de partidos del equipo de usuario
-    matchHistoryList.innerHTML = userTeamHistory.map(match => `
-        <li class="flex items-center space-x-2">
-            <span class="text-xs text-gray-400">[${match.round}]</span>
-            <span class="font-semibold ${match.result === 'Victoria' ? 'text-[#22c55e]' : 'text-[#ef4444]'}">${match.result}</span>
-            <span class="text-sm">vs ${match.opponent} (${match.gameScore})</span>
-        </li>
-    `).join('');
-
-    // Renderizar el historial de torneos
-    tournamentTotalSpan.textContent = tournamentStats.total;
-    tournament1stSpan.textContent = tournamentStats.first;
-    tournament2ndSpan.textContent = tournamentStats.second;
-    tournament3rdSpan.textContent = tournamentStats.third;
-
-    // Renderizar el calendario de partidos de la jornada actual
-    if (gameState.currentWeek < gameState.schedule.length) {
-        currentWeekSpan.textContent = gameState.currentWeek + 1;
-        const weekMatches = gameState.schedule[gameState.currentWeek];
-        const htmlMatches = weekMatches.map(match => {
-            const team1 = gameState.teams[match[0]];
-            const team2 = gameState.teams[match[1]];
-            return `
-                <div class="bg-[#2e343d] p-4 rounded-lg flex justify-between items-center border border-[#30363d]">
-                    <span class="text-sm md:text-base">${team1.emoji} ${team1.name}</span>
-                    <span class="font-bold">vs</span>
-                    <span class="text-sm md:text-base">${team2.emoji} ${team2.name}</span>
-                </div>
-            `;
-        }).join('');
-        matchResultsContainer.innerHTML = htmlMatches;
-    } else {
-        currentWeekSpan.textContent = gameState.schedule.length;
-        matchResultsContainer.innerHTML = `<p class="text-center text-lg text-gray-400">La temporada regular ha terminado.</p>`;
-    }
-    
-    // Renderizar el bracket
-    if (gameState.bracket.phase !== 'regular') {
-        bracketTabBtn.classList.remove('hidden');
-    } else {
-        bracketTabBtn.classList.add('hidden');
-    }
-    
-    // Renderizar el contenido de la wiki
-    const wiki = `
-        <h3 class="font-bold text-white mb-2">Cómo se determinan las victorias</h3>
-        <p>En cada partida, el juego calcula un "Poder Total" para tu equipo y para el equipo rival. El equipo con el mayor poder total es el ganador.</p>
+        let tournamentStats = { first: 0, second: 0, third: 0, total: 0 };
+        let userTeamHistory = [];
         
-        <h3 class="font-bold text-white mt-4 mb-2">Impacto de los Atributos</h3>
-        <p>Cada jugador de tu **alineación titular** (los 5 que has seleccionado) contribuye al Poder Total del equipo. Todos los atributos de los jugadores se suman por igual para generar su poder individual, y la suma de los poderes de los 5 jugadores es el poder base del equipo. Por lo tanto, cada atributo es igualmente importante y un jugador con puntuaciones más altas en general hará que tu equipo sea más fuerte.</p>
-        <ul class="list-disc list-inside space-y-2 mt-4">
-            <li><strong>Visión:</strong> La habilidad del jugador para ver el mapa y anticipar los movimientos del enemigo.</li>
-            <li><strong>Reflejos:</strong> La rapidez de reacción del jugador en situaciones de combate.</li>
-            <li><strong>Comunicación:</strong> La efectividad del jugador para coordinar con sus compañeros.</li>
-            <li><strong>Tecnología:</strong> La calidad de su equipamiento y conexión a internet.</li>
-            <li><strong>Trabajo en equipo:</strong> La capacidad de un jugador para colaborar y sincronizarse con su equipo.</li>
-            <li><strong>Estado de ánimo:</strong> El nivel de concentración y motivación mental del jugador.</li>
-        </ul>
-        
-        <h3 class="font-bold text-white mt-4 mb-2">El Factor de Aleatoriedad</h3>
-        <p>Para hacer las partidas más impredecibles y realistas, el juego añade un factor aleatorio al resultado final. Sin embargo, este factor está controlado: la probabilidad de que el equipo con menos poder gane disminuye a medida que la diferencia de poder entre los equipos aumenta. Esto asegura que los equipos más fuertes siempre tengan una ventaja clara, pero deja espacio para sorpresas en partidas reñidas.</p>
-    `;
-    wikiContentDiv.innerHTML = wiki;
-
-}
-
-// Funciones de la UI
-function showModal(title, content) {
-    modalTitle.textContent = title;
-    modalContent.textContent = content;
-    notificationModal.classList.remove('hidden');
-}
-
-function closeModal() {
-    notificationModal.classList.add('hidden');
-}
-
-function addSocialPost(type, message, emoji) {
-    const gameLog = document.getElementById('game-log');
-    const post = document.createElement('div');
-    post.className = `social-post`;
-    post.innerHTML = `<span class="text-sm font-semibold text-gray-400 mb-1 block">${emoji} ${type.toUpperCase()}</span><p class="text-sm">${message}</p>`;
-    gameLog.prepend(post);
-}
-
-// Configuración de los eventos
-function setupEventListeners() {
-    nextStepBtn.addEventListener('click', () => {
-        const userTeam = gameState.teams.find(t => t.isUserTeam);
-        if (gameState.bracket.winner) {
-            showModal("¡Fin de Temporada!", "La temporada ha terminado. Puedes empezar una nueva temporada si lo deseas.");
-            return;
+        // Utility functions
+        function createPlayer() {
+            const player = {
+                id: playerIdCounter++,
+                name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
+                emoji: playerEmojis[Math.floor(Math.random() * playerEmojis.length)],
+                nationality: nationalities[Math.floor(Math.random() * nationalities.length)],
+                attributes: {}
+            };
+            attributes.forEach(attr => {
+                player.attributes[attr] = Math.floor(Math.random() * 100) + 1;
+            });
+            return player;
         }
-        if (gameState.bracket.phase === 'regular') {
-            if (userTeam.starters.length !== 5) {
-                addSocialPost("alert", "¡Atención! Debes seleccionar 5 jugadores titulares para tu equipo antes de simular.", "⚠️");
+
+        function generateTeamsAndPlayers() {
+            for (let i = 0; i < teamNames.length; i++) {
+                const teamName = teamNames[i];
+                const teamKey = teamName.split(" ")[0] + teamName.split(" ")[1].replace(/\p{Emoji}/u, '');
+                const team = {
+                    name: teamName,
+                    key: teamKey,
+                    players: [],
+                    starters: [],
+                    wins: 0,
+                    losses: 0,
+                    gamesWon: 0,
+                    gamesLost: 0,
+                    points: 0,
+                    emoji: teamName.split(" ").pop(),
+                    bracketLosses: 0,
+                    isUserTeam: i === userTeamIndex,
+                };
+                for (let j = 0; j < 10; j++) {
+                    team.players.push(createPlayer());
+                }
+                gameState.teams.push(team);
+            }
+        }
+
+        function generateSchedule() {
+            const numTeams = gameState.teams.length;
+            const pairings = [];
+            for (let i = 0; i < numTeams; i++) {
+                for (let j = i + 1; j < numTeams; j++) {
+                    pairings.push([i, j]);
+                }
+            }
+            gameState.schedule = pairings.sort(() => Math.random() - 0.5);
+            
+            const totalWeeks = (numTeams * (numTeams - 1)) / 2 / (numTeams / 2);
+            const matchesPerWeek = numTeams / 2;
+            const weeklySchedule = [];
+            
+            for (let w = 0; w < totalWeeks; w++) {
+                weeklySchedule.push(gameState.schedule.splice(0, matchesPerWeek));
+            }
+            gameState.schedule = weeklySchedule;
+        }
+
+        function simulateGame(team1, team2) {
+            const team1Power = team1.starters.reduce((sum, player) => {
+                return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
+            }, 0);
+
+            const team2Power = team2.starters.reduce((sum, player) => {
+                return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
+            }, 0);
+            
+            let winner;
+
+            const powerDiff = Math.abs(team1Power - team2Power);
+            const weakerTeamChance = Math.max(0, 0.5 - (powerDiff / 500));
+
+            if (team1Power > team2Power) {
+                winner = (Math.random() < weakerTeamChance) ? team2.key : team1.key;
+            } else {
+                winner = (Math.random() < weakerTeamChance) ? team1.key : team2.key;
+            }
+            return winner;
+        }
+
+        function simulateMatch(team1, team2, isBracket = false) {
+            if (!team1 || !team2) {
+                return null;
+            }
+            
+            // If a non-user team doesn't have a starting lineup, assign a random one.
+            if (!team1.isUserTeam && team1.starters.length === 0) {
+                team1.starters = team1.players.sort(() => 0.5 - Math.random()).slice(0, 5);
+            }
+            if (!team2.isUserTeam && team2.starters.length === 0) {
+                team2.starters = team2.players.sort(() => 0.5 - Math.random()).slice(0, 5);
+            }
+
+            let gamesWon1 = 0;
+            let gamesWon2 = 0;
+            let winnerKey = null;
+            let loserKey = null;
+
+            for(let i = 0; i < 3; i++) {
+                if (gamesWon1 === 2 || gamesWon2 === 2) {
+                    break;
+                }
+                const gameWinnerKey = simulateGame(team1, team2);
+                if (gameWinnerKey === team1.key) {
+                    gamesWon1++;
+                } else {
+                    gamesWon2++;
+                }
+            }
+            
+            if (gamesWon1 > gamesWon2) {
+                winnerKey = team1.key;
+                loserKey = team2.key;
+            } else {
+                winnerKey = team2.key;
+                loserKey = team1.key;
+            }
+            
+            if (team1.isUserTeam || team2.isUserTeam) {
+                const userTeam = gameState.teams.find(t => t.isUserTeam);
+                userTeamHistory.push({
+                    opponent: winnerKey === userTeam.key ? team2.name : team1.name,
+                    result: winnerKey === userTeam.key ? "Victoria" : "Derrota",
+                    gameScore: `${gamesWon1}-${gamesWon2}`,
+                    round: isBracket ? `T${gameState.season}-${gameState.bracket.phase}` : `T${gameState.season}-Jornada ${gameState.currentWeek + 1}`
+                });
+            }
+
+            return { winnerKey, loserKey, gamesWon1, gamesWon2 };
+        }
+        
+        function simulateNextStep() {
+            if (gameState.bracket.winner) {
+                showLeagueEndNotification();
                 return;
             }
-        }
-        
-        // Lógica de simulación
-        const weekMatches = gameState.schedule[gameState.currentWeek];
-        addSocialPost("league", `--- Comienza la Jornada ${gameState.currentWeek + 1} ---`, "📢");
-        
-        weekMatches.forEach(match => {
-            const team1 = gameState.teams[match[0]];
-            const team2 = gameState.teams[match[1]];
-            const { winnerKey, loserKey, gamesWon1, gamesWon2 } = simulateMatch(team1, team2);
-            const winnerTeam = gameState.teams.find(t => t.key === winnerKey);
-            const loserTeam = gameState.teams.find(t => t.key === loserKey);
-            
-            let winnerGamesWon, loserGamesWon;
-            if (team1.key === winnerKey) {
-                winnerGamesWon = gamesWon1;
-                loserGamesWon = gamesWon2;
-            } else {
-                winnerGamesWon = gamesWon2;
-                loserGamesWon = gamesWon1;
-            }
-            if(winnerTeam) {
-                 winnerTeam.wins++;
-                 winnerTeam.gamesWon += winnerGamesWon;
-                 winnerTeam.gamesLost += loserGamesWon;
-            }
-            if(loserTeam) {
-                loserTeam.losses++;
-                loserTeam.gamesWon += loserGamesWon;
-                loserTeam.gamesLost += winnerGamesWon;
-            }
-            const result = {
-                week: gameState.currentWeek + 1,
-                team1: team1.name,
-                team2: team2.name,
-                winner: winnerTeam.name,
-                score: `${winnerGamesWon}-${loserGamesWon}`
-            };
-            gameState.results.push(result);
-            addSocialPost("match", `${winnerTeam.emoji} ${winnerTeam.name} (${result.score}) vence a ${loserTeam.emoji} ${loserTeam.name} en la Jornada ${gameState.currentWeek + 1}!`, "✅");
-        });
-        
-        gameState.currentWeek++;
-        renderUI();
-        
-    });
-    
-    newSeasonBtn.addEventListener('click', () => {
-        showModal("Iniciar Nueva Temporada", "¿Estás seguro de que quieres iniciar una nueva temporada? Se reiniciarán las estadísticas de la liga, pero tu equipo y las estadísticas de torneos se mantendrán.");
-        closeModalBtn.addEventListener('click', () => {
-            closeModal();
-            startNewSeason();
-            renderUI();
-        }, { once: true });
-    });
-    
-    closeModalBtn.addEventListener('click', closeModal);
-    
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetId = e.target.dataset.tabTarget;
-            document.querySelectorAll('.content-tab').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(targetId).classList.remove('hidden');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-        });
-    });
 
-    updateTeamBtn.addEventListener('click', () => {
-        const userTeam = gameState.teams.find(t => t.isUserTeam);
-        const newName = teamNameInput.value.trim();
-        const newEmoji = teamEmojiInput.value.trim();
-        if (newName !== '') {
-            userTeam.name = newName;
-        }
-        if (newEmoji !== '') {
-            userTeam.emoji = newEmoji;
-        }
-        renderUI();
-        addSocialPost("update", `Tu equipo ha sido renombrado a ${userTeam.emoji} ${userTeam.name}`, "📝");
-    });
+            const userTeam = gameState.teams.find(t => t.isUserTeam);
 
-    starterPlayersDiv.addEventListener('click', (e) => {
-        if (e.target.classList.contains('player-toggle-btn')) {
-            const playerCard = e.target.closest('.player-card');
-            const playerId = parseInt(playerCard.dataset.id);
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-            userTeam.starters = userTeam.starters.filter(p => p.id !== playerId);
-            renderUI();
-        }
-    });
-    
-    availablePlayersDiv.addEventListener('click', (e) => {
-        if (e.target.classList.contains('player-toggle-btn')) {
-            const playerCard = e.target.closest('.player-card');
-            const playerId = parseInt(playerCard.dataset.id);
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-            const playerToAdd = userTeam.players.find(p => p.id === playerId);
-            if (userTeam.starters.length < 5) {
-                userTeam.starters.push(playerToAdd);
+            if (gameState.bracket.phase === 'regular') {
+                if (gameState.currentWeek >= gameState.schedule.length) {
+                    const sortedTeams = [...gameState.teams].sort((a, b) => {
+                        if (b.wins !== a.wins) {
+                            return b.wins - a.wins;
+                        }
+                        return b.gamesWon - a.gamesWon;
+                    });
+                    
+                    const topFourTeams = sortedTeams.slice(0, 4);
+                    
+                    tournamentStats.total++;
+
+                    const userTeamInBracket = topFourTeams.some(t => t.isUserTeam);
+                    if (!userTeamInBracket) {
+                        const userTeamRank = sortedTeams.findIndex(t => t.isUserTeam) + 1;
+                        addSocialPost("league", `¡La temporada regular ha terminado! Tu equipo terminó en el puesto #${userTeamRank} y no ha clasificado para el bracket final.`, "📊");
+                    } else {
+                        addSocialPost("league", "¡Tu equipo ha clasificado para el bracket final! ¡Mucha suerte en los playoffs!", "🔥");
+                    }
+
+                    nextStepBtn.textContent = "Simular Siguiente Encuentro";
+                    nextStepBtn.classList.remove('bg-[#0e7490]', 'hover:bg-[#08617d]');
+                    nextStepBtn.classList.add('bg-[#eab308]', 'hover:bg-[#a16207]');
+                    showBracketView();
+
+                    gameState.bracket.phase = 'wb1';
+                    gameState.bracket.pendingMatches = [
+                        {team1: topFourTeams[0], team2: topFourTeams[3]},
+                        {team1: topFourTeams[1], team2: topFourTeams[2]}
+                    ];
+                    renderUI();
+                    return;
+                }
+
+                if (userTeam.starters.length !== 5) {
+                    addSocialPost("alert", "¡Atención! Debes seleccionar 5 jugadores titulares para tu equipo antes de simular.", "⚠️");
+                    return;
+                }
+
+                const weekMatches = gameState.schedule[gameState.currentWeek];
+                addSocialPost("league", `--- Comienza la Jornada ${gameState.currentWeek + 1} ---`, "📢");
+                
+                weekMatches.forEach(match => {
+                    const team1 = gameState.teams[match[0]];
+                    const team2 = gameState.teams[match[1]];
+
+                    const { winnerKey, loserKey, gamesWon1, gamesWon2 } = simulateMatch(team1, team2);
+
+                    const winnerTeam = gameState.teams.find(t => t.key === winnerKey);
+                    const loserTeam = gameState.teams.find(t => t.key === loserKey);
+
+                    // Bug fix: Correctly assign games won and lost to each team.
+                    // The variables gamesWon1 and gamesWon2 are tied to the order of team1 and team2 in the match.
+                    let winnerGamesWon, loserGamesWon;
+                    if (team1.key === winnerKey) {
+                        winnerGamesWon = gamesWon1;
+                        loserGamesWon = gamesWon2;
+                    } else {
+                        winnerGamesWon = gamesWon2;
+                        loserGamesWon = gamesWon1;
+                    }
+
+                    if(winnerTeam) {
+                         winnerTeam.wins++;
+                         winnerTeam.gamesWon += winnerGamesWon;
+                         winnerTeam.gamesLost += loserGamesWon;
+                    }
+                    if(loserTeam) {
+                        loserTeam.losses++;
+                        loserTeam.gamesWon += loserGamesWon;
+                        loserTeam.gamesLost += winnerGamesWon;
+                    }
+
+                    const result = {
+                        week: gameState.currentWeek + 1,
+                        team1: team1.name,
+                        team2: team2.name,
+                        winner: winnerTeam.name,
+                        score: `${winnerGamesWon}-${loserGamesWon}`
+                    };
+                    gameState.results.push(result);
+                    addSocialPost("match", `${winnerTeam.emoji} ${winnerTeam.name} (${result.score}) vence a ${loserTeam.emoji} ${loserTeam.name} en la Jornada ${gameState.currentWeek + 1}!`, "✅");
+                });
+                
+                gameState.currentWeek++;
                 renderUI();
+                
             } else {
-                addSocialPost("alert", "No puedes tener más de 5 jugadores titulares.", "⚠️");
+                if (gameState.bracket.pendingMatches.length > 0) {
+                    const match = gameState.bracket.pendingMatches.shift();
+                    const team1 = match.team1;
+                    const team2 = match.team2;
+
+                    const { winnerKey, loserKey, gamesWon1, gamesWon2 } = simulateMatch(team1, team2, true);
+                    const winnerTeam = gameState.teams.find(t => t.key === winnerKey);
+                    const loserTeam = gameState.teams.find(t => t.key === loserKey);
+                    
+                    const result = { team1, team2, winner: winnerTeam, loser: loserTeam, score: `${gamesWon1}-${gamesWon2}` };
+
+                    if (gameState.bracket.phase.startsWith('wb')) {
+                        gameState.bracket.wbHistory.push(result);
+                        if(loserTeam) loserTeam.bracketLosses++;
+                    } else if (gameState.bracket.phase.startsWith('lb')) {
+                        gameState.bracket.lbHistory.push(result);
+                        if(loserTeam) loserTeam.bracketLosses++;
+                    } else if (gameState.bracket.phase === 'grand-final') {
+                        gameState.bracket.gfHistory.push(result);
+                        gameState.bracket.winner = winnerTeam;
+                        addSocialPost("league", `¡El campeón es ${winnerTeam.emoji} ${winnerTeam.name}!`, "🏆");
+                    }
+
+                    if (gameState.bracket.phase !== 'grand-final' && loserTeam && loserTeam.bracketLosses === 2) {
+                        addSocialPost("elimination", `${loserTeam.emoji} ${loserTeam.name} ha sido eliminado del torneo.`, "❌");
+                    }
+
+                    addSocialPost("match", `[${team1.emoji} ${team1.name} vs ${team2.emoji} ${team2.name}] - Ganador: ${winnerTeam.emoji} ${winnerTeam.name} (${gamesWon1}-${gamesWon2})`, "⚔️");
+                    
+                }
+
+                if (gameState.bracket.pendingMatches.length === 0) {
+                    let nextMatches = [];
+                    switch(gameState.bracket.phase) {
+                        case 'wb1':
+                            addSocialPost("announcement", "--- Bracket: Ronda de Perdedores 1 ---", "➡️");
+                            const wb1Losers = gameState.bracket.wbHistory.slice(0, 2).map(m => m.loser).filter(t => t && t.bracketLosses < 2);
+                            if (wb1Losers.length > 1) {
+                                nextMatches.push({team1: wb1Losers[0], team2: wb1Losers[1]});
+                            }
+                            gameState.bracket.phase = 'lb1';
+                            nextStepBtn.textContent = "Simular Siguiente Encuentro";
+                            break;
+                        case 'lb1':
+                            addSocialPost("announcement", "--- Bracket: Final de Ganadores ---", "👑");
+                            const wb1Winners = gameState.bracket.wbHistory.slice(0, 2).map(m => m.winner).filter(t => t && t.bracketLosses < 2);
+                            if (wb1Winners.length > 1) {
+                                nextMatches.push({team1: wb1Winners[0], team2: wb1Winners[1]});
+                            }
+                            gameState.bracket.phase = 'wb-final';
+                            nextStepBtn.textContent = "Simular Final de Ganadores";
+                            break;
+                        case 'wb-final':
+                            addSocialPost("announcement", "--- Bracket: Final de Perdedores ---", "🔥");
+                            const wbLoser = gameState.bracket.wbHistory[2].loser;
+                            const lb1Winner = gameState.bracket.lbHistory[0] ? gameState.bracket.lbHistory[0].winner : null;
+                            if (wbLoser && wbLoser.bracketLosses < 2 && lb1Winner && lb1Winner.bracketLosses < 2) {
+                                nextMatches.push({team1: wbLoser, team2: lb1Winner});
+                            }
+                            gameState.bracket.phase = 'lb-final';
+                            nextStepBtn.textContent = "Simular Final de Perdedores";
+                            break;
+                        case 'lb-final':
+                            const wbFinalist = gameState.bracket.wbHistory[2].winner;
+                            const lbFinalist = gameState.bracket.lbHistory[1].winner;
+                            if (wbFinalist && lbFinalist) {
+                                addSocialPost("announcement", `--- ¡La Gran Final! ${wbFinalist.emoji} ${wbFinalist.name} vs ${lbFinalist.emoji} ${lbFinalist.name} ---`, "🌟");
+                                nextMatches.push({team1: wbFinalist, team2: lbFinalist});
+                                gameState.bracket.phase = 'grand-final';
+                                nextStepBtn.textContent = "Simular Gran Final";
+                            } else {
+                                addSocialPost("alert", "Error: No se pudo determinar los finalistas. La temporada ha terminado inesperadamente.", "⚠️");
+                                gameState.bracket.winner = gameState.teams.find(t => t.bracketLosses === 1) || gameState.teams[0];
+                                showLeagueEndNotification();
+                            }
+                            break;
+                        case 'grand-final':
+                             showLeagueEndNotification();
+                             break;
+                        default:
+                            break;
+                    }
+
+                    gameState.bracket.pendingMatches = nextMatches;
+                }
+                renderUI();
+            }
+            setActiveTab('log-content');
+        }
+
+        function updateTournamentStats() {
+            const winner = gameState.bracket.gfHistory[0]?.winner;
+            const second = gameState.bracket.gfHistory[0]?.loser;
+            const third = gameState.bracket.lbHistory[1]?.loser;
+            const fourth = gameState.bracket.lbHistory[0]?.loser;
+
+            if (winner && winner.isUserTeam) {
+                tournamentStats.first++;
+                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en primer lugar! 🥇", "🎉");
+            }
+            if (second && second.isUserTeam) {
+                tournamentStats.second++;
+                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en segundo lugar! 🥈", "🎉");
+            }
+            if (third && third.isUserTeam) {
+                tournamentStats.third++;
+                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en tercer lugar! 🥉", "🎉");
+            }
+            if (fourth && fourth.isUserTeam) {
+                 addSocialPost("achievement", "Tu equipo ha quedado en cuarto lugar.", "👏");
             }
         }
-    });
-}
 
-function initGame() {
-    generateTeamsAndPlayers();
-    generateSchedule();
-    const userTeam = gameState.teams.find(t => t.isUserTeam);
-    if (userTeam && userTeam.starters.length === 0) {
-        userTeam.starters = userTeam.players.slice(0, 5);
-    }
-    renderUI();
-    setupEventListeners();
-}
+        const leagueStandingsContainer = document.getElementById('league-standings');
+        const teamNameInput = document.getElementById('team-name-input');
+        const teamEmojiInput = document.getElementById('team-emoji-input');
+        const updateTeamBtn = document.getElementById('update-team-btn');
+        const tournamentsTotalSpan = document.getElementById('tournaments-total');
+        const tournaments1stSpan = document.getElementById('tournaments-1st');
+        const tournaments2ndSpan = document.getElementById('tournaments-2nd');
+        const tournaments3rdSpan = document.getElementById('tournaments-3rd');
+        const matchHistoryList = document.getElementById('match-history-list');
+        const starterPlayersContainer = document.getElementById('starter-players');
+        const availablePlayersContainer = document.getElementById('available-players');
+        const starterCountSpan = document.getElementById('starter-count');
+        const gameLogContainer = document.getElementById('game-log');
+        const matchResultsContainer = document.getElementById('match-results-container');
+        const currentWeekSpan = document.getElementById('current-week');
+        const nextStepBtn = document.getElementById('next-step-btn');
+        const newSeasonBtn = document.getElementById('new-season-btn');
+        const notificationModal = document.getElementById('notification-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const contentTabs = document.querySelectorAll('.content-tab');
+        const bracketTabBtn = document.getElementById('bracket-tab-btn');
+        const bracketContainer = document.getElementById('bracket-container');
+        const allTeamsContainer = document.getElementById('all-teams-container');
+        
+        const charts = {};
 
-window.onload = initGame;
+        function showModal(title, content) {
+            modalTitle.textContent = title;
+            modalContent.innerHTML = content;
+            notificationModal.classList.remove('hidden');
+        }
+
+        function setActiveTab(targetTab) {
+            contentTabs.forEach(tab => tab.classList.add('hidden'));
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(targetTab).classList.remove('hidden');
+            document.querySelector(`[data-tab-target="${targetTab}"]`).classList.add('active');
+        }
+
+        function handleTabClick(event) {
+            const targetTab = event.currentTarget.dataset.tabTarget;
+            setActiveTab(targetTab);
+        }
+
+        function renderStandings() {
+            const sortedTeams = [...gameState.teams].sort((a, b) => {
+                if (b.wins !== a.wins) {
+                    return b.wins - a.wins;
+                }
+                return b.gamesWon - a.gamesWon;
+            });
+
+            let tableHTML = `<table class="min-w-full text-sm text-left text-gray-400 rounded-lg overflow-hidden">
+                                <thead class="text-xs text-gray-200 uppercase bg-[#30363d]">
+                                    <tr>
+                                        <th scope="col" class="py-3 px-4 rounded-tl-lg">#</th>
+                                        <th scope="col" class="py-3 px-4">Equipo</th>
+                                        <th scope="col" class="py-3 px-4">Jugados (E)</th>
+                                        <th scope="col" class="py-3 px-4">Victorias (E)</th>
+                                        <th scope="col" class="py-3 px-4">Derrotas (E)</th>
+                                        <th scope="col" class="py-3 px-4">Jugadas (P)</th>
+                                        <th scope="col" class="py-3 px-4">Victorias (P)</th>
+                                        <th scope="col" class="py-3 px-4 rounded-tr-lg">Derrotas (P)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+            
+            sortedTeams.forEach((team, index) => {
+                const isUserTeam = team.isUserTeam;
+                const rowClass = isUserTeam ? 'bg-[#0e7490] text-white' : 'bg-[#1e232b] border-b border-[#30363d] last:border-b-0';
+                const cellClass = isUserTeam ? 'text-white' : '';
+                const gamesPlayed = team.wins + team.losses;
+                const gamesTotal = team.gamesWon + team.gamesLost;
+
+                tableHTML += `<tr class="${rowClass}">
+                                <td class="py-3 px-4 font-bold ${cellClass}">${index + 1}</td>
+                                <td class="py-3 px-4 ${cellClass}">${team.emoji} ${team.name}</td>
+                                <td class="py-3 px-4 ${cellClass}">${gamesPlayed}</td>
+                                <td class="py-3 px-4 text-green-400 ${cellClass}">${team.wins}</td>
+                                <td class="py-3 px-4 text-red-400 ${cellClass}">${team.losses}</td>
+                                <td class="py-3 px-4 ${cellClass}">${gamesTotal}</td>
+                                <td class="py-3 px-4 text-green-400 ${cellClass}">${team.gamesWon}</td>
+                                <td class="py-3 px-4 text-red-400 ${cellClass}">${team.gamesLost}</td>
+                              </tr>`;
+            });
+
+            tableHTML += `</tbody></table>`;
+            leagueStandingsContainer.innerHTML = tableHTML;
+        }
+
+        function renderMatchResults() {
+            matchResultsContainer.innerHTML = '';
+            
+            if (gameState.currentWeek < gameState.schedule.length) {
+                const weekMatches = gameState.schedule[gameState.currentWeek];
+                weekMatches.forEach(match => {
+                    const team1 = gameState.teams[match[0]];
+                    const team2 = gameState.teams[match[1]];
+
+                    let resultText = "Próximo partido";
+                    const matchResult = gameState.results.find(r => 
+                        (r.team1 === team1.name && r.team2 === team2.name) || 
+                        (r.team1 === team2.name && r.team2 === team1.name)
+                    );
+
+                    if (matchResult) {
+                        resultText = `Ganador: ${matchResult.winner === team1.name ? team1.emoji : team2.emoji} ${matchResult.winner} (${matchResult.score})`;
+                    }
+
+                    const matchCard = document.createElement('div');
+                    matchCard.className = "p-4 bg-[#23262d] rounded-xl border border-[#30363d]";
+                    matchCard.innerHTML = `
+                        <p class="text-sm">Jornada ${gameState.currentWeek + 1}</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="font-bold text-white">${team1.emoji} ${team1.name}</span>
+                            <span class="text-gray-400">vs</span>
+                            <span class="font-bold text-white">${team2.emoji} ${team2.name}</span>
+                        </div>
+                        <p class="mt-2 text-center text-sm font-semibold">${resultText}</p>
+                    `;
+                    matchResultsContainer.appendChild(matchCard);
+                });
+            } else {
+                matchResultsContainer.innerHTML = `<p class="text-center text-gray-400">La temporada regular ha terminado.</p>`;
+            }
+        }
+        
+        function renderPlayerManagement() {
+            const userTeam = gameState.teams.find(t => t.isUserTeam);
+            teamNameInput.value = userTeam.name;
+            teamEmojiInput.value = userTeam.emoji;
+            tournamentsTotalSpan.textContent = tournamentStats.total;
+            tournaments1stSpan.textContent = tournamentStats.first;
+            tournaments2ndSpan.textContent = tournamentStats.second;
+            tournaments3rdSpan.textContent = tournamentStats.third;
+            starterCountSpan.textContent = `${userTeam.starters.length}/5`;
+
+            matchHistoryList.innerHTML = '';
+            userTeamHistory.forEach(match => {
+                const li = document.createElement('li');
+                const resultClass = match.result === 'Victoria' ? 'match-history-win' : 'match-history-loss';
+                const resultText = match.result === 'Victoria' ? 'Victoria' : 'Derrota';
+                li.className = `text-sm ${resultClass}`;
+                li.innerHTML = `${match.round}: vs ${match.opponent} - <strong>${resultText} (${match.gameScore})</strong>`;
+                matchHistoryList.appendChild(li);
+            });
+
+            starterPlayersContainer.innerHTML = '';
+            availablePlayersContainer.innerHTML = '';
+            
+            const availablePlayers = userTeam.players.filter(player => !userTeam.starters.some(s => s.id === player.id));
+
+            userTeam.starters.forEach(player => {
+                renderPlayerCard(player, starterPlayersContainer, true, false);
+            });
+
+            availablePlayers.forEach(player => {
+                renderPlayerCard(player, availablePlayersContainer, false, false);
+            });
+
+            // Bug fix: Add a timeout to ensure canvas elements are in the DOM before rendering charts
+            setTimeout(() => {
+                userTeam.starters.forEach(player => {
+                    renderRadarChart(player, false);
+                });
+                availablePlayers.forEach(player => {
+                    renderRadarChart(player, false);
+                });
+            }, 50);
+        }
+
+        function renderPlayerCard(player, container, isStarter, isParticipantView = false) {
+            const cardId = `player-card-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
+            const playerCard = document.createElement('div');
+            playerCard.dataset.playerId = player.id;
+            playerCard.id = cardId;
+            playerCard.className = `p-3 rounded-xl shadow-md transition-all duration-200 flex flex-col items-center space-y-2 player-card ${isStarter ? 'bg-[#0e7490] hover:bg-[#08617d] cursor-pointer' : 'bg-[#23262d] hover:bg-[#1e232b] cursor-pointer'}`;
+            
+            if (isParticipantView) {
+                 playerCard.classList.remove('hover:bg-[#08617d]', 'hover:bg-[#1e232b]', 'cursor-pointer');
+            }
+
+            const chartCanvasId = `chart-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
+            const cardContent = `
+                <div class="player-card-content text-center w-full">
+                    <div class="flex-grow flex flex-col items-center justify-center">
+                        <span class="text-3xl">${player.emoji}</span>
+                        <p class="font-medium text-white text-sm">${player.name}</p>
+                        <p class="text-xs text-gray-400">${player.nationality}</p>
+                    </div>
+                    <div class="flex-shrink-0 w-full h-24">
+                        <canvas id="${chartCanvasId}" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            playerCard.innerHTML = cardContent;
+            
+            if (!isParticipantView) {
+                playerCard.addEventListener('click', () => {
+                    toggleStarter(player);
+                    renderPlayerManagement();
+                });
+            }
+            container.appendChild(playerCard);
+        }
+
+        function renderRadarChart(player, isParticipantView) {
+            const canvasId = `chart-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            const attributeValues = Object.values(player.attributes);
+            const attributeLabels = Object.keys(player.attributes).map(label => label.charAt(0).toUpperCase() + label.slice(1));
+            
+            const newChart = new Chart(canvas, {
+                type: 'radar',
+                data: {
+                    labels: attributeLabels,
+                    datasets: [{
+                        data: attributeValues,
+                        backgroundColor: 'rgba(23, 192, 235, 0.4)',
+                        borderColor: '#0e7490',
+                        borderWidth: 1,
+                        pointBackgroundColor: '#0e7490',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#0e7490'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                            pointLabels: {
+                                color: '#c9d1d9',
+                                font: { size: 8 }
+                            },
+                            ticks: {
+                                display: false,
+                                max: 100
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    return `${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            borderWidth: 2
+                        },
+                        point: {
+                            radius: 3
+                        }
+                    }
+                }
+            });
+            
+            charts[canvasId] = newChart;
+        }
+        
+        function toggleStarter(player) {
+            const userTeam = gameState.teams.find(t => t.isUserTeam);
+            const isStarter = userTeam.starters.some(s => s.id === player.id);
+
+            if (isStarter) {
+                userTeam.starters = userTeam.starters.filter(s => s.id !== player.id);
+            } else {
+                if (userTeam.starters.length < 5) {
+                    userTeam.starters.push(player);
+                } else {
+                    addSocialPost("alert", "Ya tienes 5 jugadores titulares. Elimina uno antes de añadir otro.", "⚠️");
+                }
+            }
+        }
+
+        function renderParticipants() {
+            allTeamsContainer.innerHTML = '';
+        
+            gameState.teams.forEach(team => {
+                const teamCard = document.createElement('div');
+                teamCard.className = "p-6 bg-[#23262d] rounded-xl border border-[#30363d]";
+                
+                const teamTitleHTML = `<h3 class="text-xl font-bold mb-4 text-white">${team.emoji} ${team.name}</h3>`;
+                
+                const playersContainer = document.createElement('div');
+                playersContainer.className = "flex flex-wrap gap-4 justify-center";
+                
+                team.players.forEach(player => {
+                    const isStarter = team.starters.some(s => s.id === player.id);
+                    renderPlayerCard(player, playersContainer, isStarter, true);
+                });
+                
+                teamCard.innerHTML = teamTitleHTML;
+                teamCard.appendChild(playersContainer);
+                allTeamsContainer.appendChild(teamCard);
+            });
+            setTimeout(() => {
+                gameState.teams.forEach(team => {
+                    team.players.forEach(player => {
+                        renderRadarChart(player, true);
+                    });
+                });
+            }, 50);
+        }
+
+        function showLeagueEndNotification() {
+            updateTournamentStats();
+            const winner = gameState.bracket.gfHistory[0]?.winner || gameState.teams.sort((a,b) => b.wins - a.wins)[0];
+            showModal("¡Temporada Terminada!", `¡El campeón de la liga es ${winner.emoji} <strong>${winner.name}</strong>!`);
+            nextStepBtn.disabled = true;
+            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            newSeasonBtn.classList.remove('hidden');
+        }
+
+        function renderBracket() {
+            bracketContainer.innerHTML = '';
+            const sortedTeams = [...gameState.teams].sort((a, b) => {
+                if (b.wins !== a.wins) {
+                    return b.wins - a.wins;
+                }
+                return b.gamesWon - a.gamesWon;
+            });
+            const topFourTeams = sortedTeams.slice(0, 4);
+            const userTeamInBracket = topFourTeams.some(t => t.isUserTeam);
+            
+            if (gameState.bracket.phase === 'regular' && !userTeamInBracket) {
+                bracketContainer.innerHTML = `
+                    <p class="text-center text-lg text-gray-400">Tu equipo no clasificó para el bracket final.</p>
+                    <p class="text-center text-sm mt-2">Aquí están los 4 equipos clasificados:</p>
+                    <div class="flex justify-center flex-wrap gap-4 mt-4">
+                        ${topFourTeams.map(t => `<div class="p-3 bg-[#23262d] rounded-xl border border-[#30363d] text-center"><p class="text-xl">${t.emoji}</p><p class="text-sm font-semibold">${t.name}</p></div>`).join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            const renderMatch = (match) => {
+                if (!match || !match.team1 || !match.team2) return '';
+                const isWinner = match.winner && match.team1.key === match.winner.key;
+                const winnerClass = 'text-green-400 font-bold';
+                const loserClass = 'text-red-400 line-through';
+                
+                return `
+                    <div class="p-2 bg-[#1e232b] rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm ${isWinner ? winnerClass : loserClass}">${match.team1.emoji} ${match.team1.name}</span>
+                            <span class="text-sm text-gray-400">vs</span>
+                            <span class="text-sm ${!isWinner ? winnerClass : loserClass}">${match.team2.emoji} ${match.team2.name}</span>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderRound = (title, matches) => {
+                return `
+                    <div class="p-4 rounded-xl border border-[#30363d] space-y-4 flex-1">
+                        <h3 class="font-bold text-lg text-center">${title}</h3>
+                        <div class="space-y-2">
+                            ${matches.length === 0 ? '<p class="text-center text-gray-400 text-sm">Próxima ronda...</p>' : matches.map(renderMatch).join('')}
+                        </div>
+                    </div>
+                `;
+            };
+            
+            let html = `<div class="flex flex-col md:flex-row gap-4">`;
+
+            html += `<div class="flex flex-col md:w-1/3 gap-4">
+                         ${renderRound("Ronda de Ganadores 1", gameState.bracket.wbHistory.slice(0, 2))}
+                         ${renderRound("Final de Ganadores", gameState.bracket.wbHistory.slice(2, 3))}
+                    </div>`;
+
+            html += `<div class="flex flex-col md:w-1/3 gap-4">
+                         ${renderRound("Ronda de Perdedores 1", gameState.bracket.lbHistory.slice(0, 1))}
+                         ${renderRound("Final de Perdedores", gameState.bracket.lbHistory.slice(1, 2))}
+                    </div>`;
+            
+            html += `<div class="flex flex-col md:w-1/3 gap-4">
+                         ${renderRound("Gran Final", gameState.bracket.gfHistory)}
+                    </div>`;
+
+            html += `</div>`;
+
+            bracketContainer.innerHTML = html;
+        }
+
+        function showBracketView() {
+            contentTabs.forEach(tab => tab.classList.add('hidden'));
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.getElementById('bracket-content').classList.remove('hidden');
+            bracketTabBtn.classList.remove('hidden');
+            bracketTabBtn.classList.add('active');
+        }
+
+        function addSocialPost(type, message, icon) {
+            const post = document.createElement('div');
+            post.className = 'social-post';
+            
+            let iconColor = 'text-gray-400';
+            if (type === 'announcement') iconColor = 'text-blue-400';
+            else if (type === 'match') iconColor = 'text-green-400';
+            else if (type === 'elimination') iconColor = 'text-red-400';
+            else if (type === 'achievement') iconColor = 'text-yellow-400';
+            else if (type === 'alert') iconColor = 'text-red-500';
+
+            post.innerHTML = `
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="text-xl ${iconColor}">${icon}</span>
+                    <span class="font-semibold text-white text-sm">MOBA News</span>
+                    <span class="text-xs text-gray-500 ml-auto">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <p class="text-gray-300 text-sm">${message}</p>
+            `;
+            
+            gameLogContainer.prepend(post);
+            if (gameLogContainer.childElementCount > 50) {
+                gameLogContainer.removeChild(gameLogContainer.lastChild);
+            }
+        }
+        
+        function renderUI() {
+            currentWeekSpan.textContent = gameState.currentWeek;
+            renderStandings();
+            renderMatchResults();
+            renderPlayerManagement();
+            renderParticipants();
+            renderBracket();
+        }
+
+        function startNewSeason() {
+            const userTeam = gameState.teams.find(t => t.isUserTeam);
+            const userStarters = [...userTeam.starters];
+            const userTeamName = userTeam.name;
+            const userTeamEmoji = userTeam.emoji;
+
+            gameState = {
+                teams: [],
+                schedule: [],
+                results: [],
+                currentWeek: 0,
+                season: gameState.season + 1,
+                bracket: {
+                    phase: 'regular',
+                    pendingMatches: [],
+                    wbHistory: [],
+                    lbHistory: [],
+                    gfHistory: [],
+                    winner: null
+                }
+            };
+            
+            generateTeamsAndPlayers();
+            generateSchedule();
+            
+            const newTeam = gameState.teams.find(t => t.isUserTeam);
+            newTeam.name = userTeamName;
+            newTeam.emoji = userTeamEmoji;
+            newTeam.starters = userStarters;
+            
+            const freeAgents = [];
+            for(let i = 0; i < 5; i++) {
+                freeAgents.push(createPlayer());
+            }
+
+            newTeam.players = [...newTeam.starters, ...freeAgents];
+
+            addSocialPost("announcement", `¡Nueva temporada ${gameState.season} iniciada!`, "⚡");
+            nextStepBtn.textContent = "Simular Siguiente Jornada";
+            nextStepBtn.classList.remove('bg-[#eab308]', 'hover:bg-[#a16207]');
+            nextStepBtn.classList.add('bg-[#0e7490]', 'hover:bg-[#08617d]');
+            nextStepBtn.disabled = false;
+            nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            newSeasonBtn.classList.add('hidden');
+
+            bracketTabBtn.classList.add('hidden');
+            
+            renderUI();
+            setActiveTab('log-content');
+        }
+
+        function initGame() {
+            generateTeamsAndPlayers();
+            generateSchedule();
+            
+            gameState.teams.forEach(team => {
+                team.starters = team.players.slice(0, 5);
+            });
+
+            addSocialPost("announcement", "¡Bienvenido al simulador de liga de MOBA!", "🎮");
+            addSocialPost("tip", "Selecciona a tus 5 jugadores titulares en la pestaña 'Gestión de Equipo' antes de simular la próxima jornada.", "💡");
+            
+            renderUI();
+            
+            nextStepBtn.addEventListener('click', simulateNextStep);
+            newSeasonBtn.addEventListener('click', () => {
+                showModal("Iniciar Nueva Temporada", "¿Estás seguro de que quieres iniciar una nueva temporada? Se reiniciarán las estadísticas de la liga, pero tu equipo y las estadísticas de torneos se mantendrán.");
+                closeModalBtn.addEventListener('click', () => {
+                    notificationModal.classList.add('hidden');
+                    startNewSeason();
+                }, { once: true });
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                notificationModal.classList.add('hidden');
+            });
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', handleTabClick);
+            });
+            
+            updateTeamBtn.addEventListener('click', () => {
+                const userTeam = gameState.teams.find(t => t.isUserTeam);
+                const newName = teamNameInput.value.trim();
+                const newEmoji = teamEmojiInput.value.trim();
+                if (newName !== '') {
+                    userTeam.name = newName;
+                }
+                if (newEmoji !== '') {
+                    userTeam.emoji = newEmoji;
+                }
+                renderUI();
+                addSocialPost("update", `Tu equipo ha sido renombrado a ${userTeam.emoji} ${userTeam.name}`, "📝");
+            });
+        }
+        
+        window.onload = initGame;
+
