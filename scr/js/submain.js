@@ -37,6 +37,17 @@ function init(
     } else {
         console.log("Iniciando nuevo juego...");
         // Inicializar con datos por defecto si no hay partida guardada
+// En submain.js, justo antes de la línea que causa error
+console.log('gameModules:', gameModules);
+console.log('gameModules.Participants:', gameModules.Participants);
+console.log('Tipo de gameModules.Participants:', typeof gameModules.Participants);
+
+if (gameModules.Participants && typeof gameModules.Participants.loadParticipants === 'function') {
+    gameModules.Participants.loadParticipants(null);
+} else {
+    console.error('loadParticipants no es una función o no está disponible');
+}
+//ERROR
         gameModules.Participants.loadParticipants(null);
         gameModules.StandingsAndBracket.initializeStandings(gameModules.Participants.getTeams());
     }
