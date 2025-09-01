@@ -1,46 +1,22 @@
-// teamManagement.js
-import { Participants } from './participants.js';
-
+// scr/js/teamManagement.js
 const TeamManagement = (function() {
-    // Crea un nuevo equipo
-    function createTeam(name, emblem) {
-        const newTeam = {
-            id: Participants.getTeams().length + 1,
-            name,
-            emblem,
-            players: []
-        };
-        Participants.getTeams().push(newTeam);
-        return newTeam;
-    }
-
-    // Agrega un jugador a un equipo
-    function addPlayerToTeam(teamId, playerId) {
-        const team = Participants.getTeams().find(t => t.id === teamId);
-        if (team && !team.players.includes(playerId)) {
-            team.players.push(playerId);
+    // Aquí puedes incluir cualquier lógica que necesite para la gestión de equipos
+    // que no modifique directamente la data central.
+    // Por ejemplo, funciones para validar nombres de equipo, o lógica de personalización.
+    
+    // Función de utilidad para manejar la personalización del equipo del usuario
+    function updateTeamDetails(team, newName, newEmoji) {
+        if (newName) {
+            team.name = newName;
         }
-    }
-
-    // Elimina un jugador de un equipo
-    function removePlayerFromTeam(teamId, playerId) {
-        const team = Participants.getTeams().find(t => t.id === teamId);
-        if (team) {
-            team.players = team.players.filter(id => id !== playerId);
+        if (newEmoji) {
+            team.emblem = newEmoji;
         }
-    }
-
-    // Obtiene los jugadores de un equipo
-    function getTeamPlayers(teamId) {
-        const team = Participants.getTeams().find(t => t.id === teamId);
-        return team ? team.players.map(id => Participants.getPlayers().find(p => p.id === id)) : [];
+        return team;
     }
 
     return {
-        createTeam,
-        addPlayerToTeam,
-        removePlayerFromTeam,
-        getTeamPlayers
+        updateTeamDetails
     };
 })();
 
