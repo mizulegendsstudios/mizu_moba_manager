@@ -1,44 +1,41 @@
-// achievementsAndWiki.js
-const AchievementsAndWiki = (function() {
-    // Lista de logros disponibles
-    const achievements = [
+// scr/js/achievements.js
+
+const Achievements = (function() {
+    // Lista de logros disponibles. La propiedad 'unlocked' será actualizada.
+    let achievements = [
         { id: 1, name: "Primer Equipo", description: "Crea tu primer equipo", unlocked: false },
         { id: 2, name: "5 Victorias", description: "Gana 5 partidos seguidos", unlocked: false },
-        // Agrega más logros según sea necesario
+        { id: 3, name: "Campeón de la Liga", description: "Gana el Bracket Final", unlocked: false }
     ];
 
-    // Lista de artículos de la wiki
-    const wikiArticles = {
-        "mecanicas-basicas": {
-            title: "Mecánicas Básicas",
-            content: "Aquí va el contenido sobre las mecánicas básicas del juego..."
-        },
-        // Agrega más artículos según sea necesario
-    };
-
-    // Desbloquea un logro
+    // Desbloquea un logro específico por su ID.
     function unlockAchievement(achievementId) {
         const achievement = achievements.find(a => a.id === achievementId);
-        if (achievement) {
+        if (achievement && !achievement.unlocked) {
             achievement.unlocked = true;
+            console.log(`Logro desbloqueado: ${achievement.name}`);
+            // Aquí podrías agregar lógica para mostrar una notificación en la UI
         }
     }
 
-    // Obtiene la lista de logros
+    // Obtiene la lista completa de logros.
     function getAchievements() {
         return achievements;
     }
 
-    // Obtiene un artículo de la wiki
-    function getWikiArticle(articleId) {
-        return wikiArticles[articleId];
+    // Carga los logros desde datos guardados.
+    function loadAchievements(data) {
+        if (data && data.achievements) {
+            achievements = data.achievements;
+        }
     }
 
+    // Expone las funciones públicas del módulo.
     return {
         unlockAchievement,
         getAchievements,
-        getWikiArticle
+        loadAchievements
     };
 })();
 
-export { AchievementsAndWiki };
+export { Achievements };
