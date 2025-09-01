@@ -1,29 +1,44 @@
-// Sistema de Logros
-function updateTournamentStats() {
-    const winner = gameState.bracket.gfHistory[0]?.winner;
-    const second = gameState.bracket.gfHistory[0]?.loser;
-    const third = gameState.bracket.lbHistory[1]?.loser;
-    const fourth = gameState.bracket.lbHistory[0]?.loser;
-    if (winner && winner.isUserTeam) {
-        tournamentStats.first++;
-        addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en primer lugar! 🥇", "🎉");
-    }
-    if (second && second.isUserTeam) {
-        tournamentStats.second++;
-        addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en segundo lugar! 🥈", "🎉");
-    }
-    if (third && third.isUserTeam) {
-        tournamentStats.third++;
-        addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en tercer lugar! 🥉", "🎉");
-    }
-    if (fourth && fourth.isUserTeam) {
-         addSocialPost("achievement", "Tu equipo ha quedado en cuarto lugar.", "👏");
-    }
-}
+// achievementsAndWiki.js
+const AchievementsAndWiki = (function() {
+    // Lista de logros disponibles
+    const achievements = [
+        { id: 1, name: "Primer Equipo", description: "Crea tu primer equipo", unlocked: false },
+        { id: 2, name: "5 Victorias", description: "Gana 5 partidos seguidos", unlocked: false },
+        // Agrega más logros según sea necesario
+    ];
 
-// Wiki
-function initializeWiki() {
-    // La wiki ya está implementada en el HTML estático
-    // Esta función podría usarse para inicializar contenido dinámico en el futuro
-    console.log("Wiki inicializada");
-}
+    // Lista de artículos de la wiki
+    const wikiArticles = {
+        "mecanicas-basicas": {
+            title: "Mecánicas Básicas",
+            content: "Aquí va el contenido sobre las mecánicas básicas del juego..."
+        },
+        // Agrega más artículos según sea necesario
+    };
+
+    // Desbloquea un logro
+    function unlockAchievement(achievementId) {
+        const achievement = achievements.find(a => a.id === achievementId);
+        if (achievement) {
+            achievement.unlocked = true;
+        }
+    }
+
+    // Obtiene la lista de logros
+    function getAchievements() {
+        return achievements;
+    }
+
+    // Obtiene un artículo de la wiki
+    function getWikiArticle(articleId) {
+        return wikiArticles[articleId];
+    }
+
+    return {
+        unlockAchievement,
+        getAchievements,
+        getWikiArticle
+    };
+})();
+
+export { AchievementsAndWiki };
