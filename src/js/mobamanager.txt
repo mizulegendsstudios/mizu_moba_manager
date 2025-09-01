@@ -1,3 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOBA Manager Liga</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            overflow-x: hidden;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #30363d;
+            border-radius: 4px;
+            border: 2px solid #161b22;
+        }
+        .tab-btn.active {
+            background-color: #1e232b;
+            border-bottom: 2px solid #0e7490;
+        }
+        .content-tab {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .notification-modal {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .match-history-win { color: #22c55e; }
+        .match-history-loss { color: #ef4444; }
+        .player-card {
+            width: 14rem;
+            height: 16rem;
+        }
+        .player-card-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .social-post {
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background-color: #1e232b;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#0d1117]">
+    <div class="container mx-auto p-6 lg:p-12">
+        <div id="game-container" class="w-full max-w-5xl mx-auto p-8 bg-[#161b22] rounded-2xl shadow-lg border border-[#30363d]">
+            <h1 class="text-3xl font-bold text-center mb-6 text-white">MOBA Manager Liga</h1>
+            
+            <div class="flex flex-wrap justify-center mb-6 border-b border-[#30363d]">
+                <button class="tab-btn active px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="log-content">Registro de Eventos</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="standings-content">Tabla</button>
+                <button id="bracket-tab-btn" class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200 hidden" data-tab-target="bracket-content">Bracket Final</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="team-management-content">Gestión de Equipo</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="participants-content">Participantes</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="schedule-content">Calendario</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="wiki-content">Wiki</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="settings-content">Configuración</button>
+            </div>
+
+            <div id="main-game-content" class="space-y-8">
+
+                <div id="log-content" class="content-tab">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Registro de Eventos</h2>
+                        <div id="game-log" class="h-96 overflow-y-auto custom-scrollbar p-2">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="standings-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Tabla de la Liga</h2>
+                        <div id="league-standings" class="overflow-x-auto">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bracket-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Bracket de Doble Eliminación</h2>
+                        <div id="bracket-container" class="space-y-8">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="team-management-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Gestión de Equipo</h2>
+                        
+                        <div class="mb-6 p-4 bg-[#23262d] rounded-lg border border-[#30363d]">
+                            <h3 class="font-medium text-lg mb-2">Personalizar Equipo</h3>
+                            <div class="flex items-center space-x-4 mb-4">
+                                <div>
+                                    <label for="team-name-input" class="block text-sm font-medium text-gray-400">Nombre del Equipo</label>
+                                    <input type="text" id="team-name-input" class="mt-1 block w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-white focus:outline-none focus:ring-[#0e7490] focus:border-[#0e7490]">
+                                </div>
+                                <div>
+                                    <label for="team-emoji-input" class="block text-sm font-medium text-gray-400">Emoji</label>
+                                    <input type="text" id="team-emoji-input" maxlength="2" class="mt-1 block w-20 px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-white text-center focus:outline-none focus:ring-[#0e7490] focus:border-[#0e7490]">
+                                </div>
+                                <button id="update-team-btn" class="mt-auto px-4 py-2 bg-[#0e7490] text-white rounded-md hover:bg-[#08617d]">Actualizar</button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-[#161b22] rounded-lg">
+                                    <h4 class="font-semibold mb-2">Historial de Torneos</h4>
+                                    <p>Participados: <span id="tournaments-total">0</span></p>
+                                    <p>🥇 Ganador: <span id="tournaments-1st">0</span></p>
+                                    <p>🥈 Segundo: <span id="tournaments-2nd">0</span></p>
+                                    <p>🥉 Tercero: <span id="tournaments-3rd">0</span></p>
+                                </div>
+                                <div class="p-4 bg-[#161b22] rounded-lg custom-scrollbar h-28 overflow-y-auto">
+                                    <h4 class="font-semibold mb-2">Historial de Partidos</h4>
+                                    <ul id="match-history-list" class="space-y-1"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="font-medium text-lg mb-2">Alineación titular (<span id="starter-count">0/5</span>)</h3>
+                        <div id="starter-players" class="flex flex-wrap gap-4 mb-6">
+                        </div>
+
+                        <h3 class="font-medium text-lg mb-2">Jugadores libres</h3>
+                        <div id="available-players" class="flex flex-wrap gap-4">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="participants-content" class="content-tab hidden">
+                    <div class="bg-[#1e232d] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Todos los Participantes</h2>
+                        <div id="all-teams-container" class="space-y-6">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schedule-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Calendario y Resultados (Jornada <span id="current-week">0</span>)</h2>
+                        <div id="match-results-container" class="space-y-4">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="wiki-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Wiki: Entendiendo el Juego</h2>
+                        <div class="prose prose-sm md:prose-base max-w-none text-gray-300">
+                            <h3 class="font-bold text-white mb-2">Cómo se determinan las victorias</h3>
+                            <p>En cada partida, el juego calcula un "Poder Total" para tu equipo y para el equipo rival. El equipo con el mayor poder total es el ganador.</p>
+                            
+                            <h3 class="font-bold text-white mt-4 mb-2">Impacto de los Atributos</h3>
+                            <p>Cada jugador de tu **alineación titular** (los 5 que has seleccionado) contribuye al Poder Total del equipo. Todos los atributos de los jugadores se suman por igual para generar su poder individual, y la suma de los poderes de los 5 jugadores es el poder base del equipo. Por lo tanto, cada atributo es igualmente importante y un jugador con puntuaciones más altas en general hará que tu equipo sea más fuerte.</p>
+                            <ul class="list-disc list-inside space-y-2 mt-4">
+                                <li><strong>Visión:</strong> La habilidad del jugador para ver el mapa y anticipar los movimientos del enemigo.</li>
+                                <li><strong>Reflejos:</strong> La rapidez de reacción del jugador en situaciones de combate.</li>
+                                <li><strong>Comunicación:</strong> La efectividad del jugador para coordinar con sus compañeros.</li>
+                                <li><strong>Tecnología:</strong> La calidad de su equipamiento y conexión a internet.</li>
+                                <li><strong>Trabajo en equipo:</strong> La capacidad de un jugador para colaborar y sincronizarse con su equipo.</li>
+                                <li><strong>Estado de ánimo:</strong> El nivel de concentración y motivación mental del jugador.</li>
+                            </ul>
+                            
+                            <h3 class="font-bold text-white mt-4 mb-2">El Factor de Aleatoriedad</h3>
+                            <p>Para hacer las partidas más impredecibles y realistas, el juego añade un factor aleatorio al resultado final. Sin embargo, este factor está controlado: la probabilidad de que el equipo con menos poder gane disminuye a medida que la diferencia de poder entre los equipos aumenta. Esto asegura que los equipos más fuertes siempre tengan una ventaja clara, pero deja espacio para sorpresas en partidas reñidas.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-content" class="content-tab hidden">
+                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Configuración del Juego</h2>
+                        <p class="text-sm text-gray-400">Aquí podrás ajustar las opciones del juego en futuras actualizaciones.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="game-controls" class="mt-8 flex flex-col md:flex-row justify-center gap-4">
+                <button id="next-step-btn" class="px-8 py-4 bg-[#0e7490] text-white font-bold rounded-lg shadow-md hover:bg-[#08617d] transition-colors duration-200">
+                    Simular Siguiente Jornada
+                </button>
+                <button id="new-season-btn" class="px-8 py-4 bg-[#1f2937] text-white font-bold rounded-lg shadow-md hover:bg-[#374151] transition-colors duration-200 hidden">
+                    Iniciar Nueva Temporada
+                </button>
+            </div>
+
+            <div id="notification-modal" class="notification-modal fixed inset-0 flex items-center justify-center hidden">
+                <div class="bg-[#1e232b] p-8 rounded-xl border border-[#30363d] text-center max-w-sm w-full mx-4">
+                    <h3 id="modal-title" class="text-2xl font-bold mb-4 text-white"></h3>
+                    <p id="modal-content" class="text-lg mb-6"></p>
+                    <button id="close-modal-btn" class="px-6 py-2 bg-[#0e7490] text-white font-bold rounded-lg hover:bg-[#08617d]">Aceptar</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
     <script>
         // Data for random generation of players and teams
         const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel", "Fernando", "Carla", "Miguel", "Andrea"];
