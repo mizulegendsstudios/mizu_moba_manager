@@ -1,0 +1,64 @@
+{
+  "wikiContent": [
+    {
+      "id": "team_management",
+      "title": "Gestión de Equipo",
+      "content": "Aprende a crear y gestionar tu equipo. Elige un nombre y un emoji que lo represente. Un equipo competitivo es la base para dominar la liga."
+    },
+    {
+      "id": "player_attributes",
+      "title": "Atributos de Jugador",
+      "content": "Cada jugador tiene seis atributos clave que determinan su rendimiento en el campo de batalla virtual. Los valores van de 1 a 100. Estos atributos se combinan para calcular el poder total del equipo."
+    },
+    {
+      "id": "attribute_breakdown",
+      "title": "Detalle de Atributos",
+      "content": [
+        {
+          "name": "Visión",
+          "description": "Capacidad para detectar emboscadas y tener conciencia del mapa."
+        },
+        {
+          "name": "Reflejos",
+          "description": "Velocidad de reacción para esquivar habilidades y ejecutar combos."
+        },
+        {
+          "name": "Comunicación",
+          "description": "Coordinación con el equipo para rotaciones y peleas grupales."
+        },
+        {
+          "name": "Tecnología",
+          "description": "Habilidad para manejar las herramientas de comunicación y software de análisis."
+        },
+        {
+          "name": "Trabajo en equipo",
+          "description": "Cohesión grupal. Un alto valor reduce los errores de coordinación."
+        },
+        {
+          "name": "Estado de ánimo",
+          "description": "Impacta directamente en el rendimiento. Las victorias lo aumentan y las derrotas lo reducen."
+        }
+      ]
+    },
+    {
+      "id": "match_simulation",
+      "title": "Simulación de Partidos",
+      "content": "Los resultados de los partidos se calculan a partir de la diferencia en el poder total de los equipos. Los jugadores con mayor poder tienen más probabilidades de ganar en la simulación. El sistema de registro te permite seguir la partida en tiempo real."
+    },
+    {
+      "id": "the_league",
+      "title": "La Liga",
+      "content": "La temporada regular consiste en una serie de partidos contra todos los equipos. Acumula victorias para subir en la tabla de posiciones. Los cuatro mejores equipos al final de la temporada avanzan al Bracket Final."
+    },
+    {
+      "id": "final_bracket",
+      "title": "El Bracket Final",
+      "content": "Los cuatro equipos que clasifican se enfrentan en un bracket de doble eliminación para coronar al campeón de la temporada. Cada partido es una batalla a muerte súbita donde solo la victoria cuenta."
+    },
+    {
+      "id": "statistics",
+      "title": "Estadísticas",
+      "content": "El sistema mantiene un registro completo de tus estadísticas. Puedes ver la tabla de posiciones, el historial de partidos de tu equipo y las estadísticas detalladas de cada jugador, incluyendo su desempeño en K/D/A."
+    }
+  ]
+}
