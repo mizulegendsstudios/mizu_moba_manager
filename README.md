@@ -96,7 +96,7 @@ Como es una aplicación web, no requiere instalación. Solo necesitas:
 - Mercado de transferencias en línea
 
 ### 📅 Fase 11: Inspiración de Juegos de Referencia (Meta Final)
-**Objetivo**: Alcanzar la profundidad de juegos como Moba GM y Esports Life Tycoon.
+**Objetivo**: Alcanzar la profundidad de juegos como Rival Esport Manager, Moba Esports Manager 25,  Moba GM y Esports Life Tycoon.
 - Sistema de gestión profunda (infraestructura, patrocinios avanzados)
 - Narrativa compleja con múltiples finales
 - Simulación táctica detallada (intervención en tiempo real)
