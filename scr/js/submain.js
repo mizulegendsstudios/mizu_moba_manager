@@ -24,7 +24,15 @@ function init(
         SaveSystem,
         ControlsAndCompatibility
     };
-    
+    // En submain.js, después de cargar los módulos
+console.log("Módulos cargados:");
+console.log("EventLogAndSchedule:", Object.keys(gameModules.EventLogAndSchedule));
+console.log("StandingsAndBracket:", Object.keys(gameModules.StandingsAndBracket));
+console.log("TeamManagement:", Object.keys(gameModules.TeamManagement));
+console.log("Achievements:", Object.keys(gameModules.Achievements));
+console.log("Participants:", Object.keys(gameModules.Participants));
+console.log("SaveSystem:", Object.keys(gameModules.SaveSystem));
+console.log("ControlsAndCompatibility:", Object.keys(gameModules.ControlsAndCompatibility));
     // 1. Cargar el estado guardado del juego
     const savedData = gameModules.SaveSystem.loadGame();
     
