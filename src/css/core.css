@@ -1,70 +1,71 @@
 /* src/css/core.css */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #0d1117;
-    color: #c9d1d9;
-    overflow-x: hidden;
-}
-.custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #161b22;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #30363d;
-    border-radius: 4px;
-    border: 2px solid #161b22;
-}
-.tab-btn.active {
-    background-color: #1e232b;
-    border-bottom: 2px solid #0e7490;
-}
-.content-tab {
-    animation: fadeIn 0.5s ease-in-out;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.notification-modal {
-    background-color: rgba(0, 0, 0, 0.7);
-    z-index: 100;
-}
-.loading-spinner {
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top: 4px solid #fff;
-    width: 24px;
-    height: 24px;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-.match-history-win { color: #22c55e; }
-.match-history-loss { color: #ef4444; }
-.player-card {
-    width: 14rem;
-    height: 16rem;
-}
-.player-card-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-}
-.social-post {
-    border-radius: 0.75rem;
-    padding: 1rem;
-    background-color: #1e232b;
-    border: 1px solid #30363d;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1rem;
-    animation: slideIn 0.5s ease-out;
-}
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            overflow-x: hidden;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #30363d;
+            border-radius: 4px;
+            border: 2px solid #161b22;
+        }
+        .tab-btn.active {
+            background-color: #1e232b;
+            border-bottom: 2px solid #0e7490;
+        }
+        .content-tab {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .notification-modal {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .match-history-win { color: #22c55e; }
+        .match-history-loss { color: #ef4444; }
+        .player-card {
+            width: 14rem;
+            height: 16rem;
+        }
+        .player-card-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .social-post {
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background-color: #1e232b;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    
