@@ -1,25 +1,63 @@
-// participants.js
+// scr/js/participants.js
 const Participants = (function() {
-    // Lista de jugadores disponibles
     let players = [];
-
-    // Lista de equipos disponibles
     let teams = [];
 
-    // Inicializa jugadores y equipos con datos por defecto
-    function initialize() {
-        players = [
-            { id: 1, name: "Jugador 1", attributes: { vision: 8, reflexes: 7, communication: 9, tech: 6, teamwork: 8, mood: 10 } },
-            { id: 2, name: "Jugador 2", attributes: { vision: 7, reflexes: 9, communication: 8, tech: 7, teamwork: 9, mood: 8 } },
-            // Agrega más jugadores según sea necesario
-        ];
+    // Carga los datos de jugadores y equipos, ya sea desde un guardado o por defecto
+    function loadParticipants(data) {
+        if (data && data.players) {
+            players = data.players;
+        } else {
+            // Inicialización por defecto si no hay datos guardados
+            players = [
+                { id: 1, name: "Jugador 1", attributes: { vision: 8, reflexes: 7, communication: 9, tecnologia: 6, teamwork: 8, mood: 10 } },
+                { id: 2, name: "Jugador 2", attributes: { vision: 7, reflexes: 9, communication: 8, tecnologia: 7, teamwork: 9, mood: 8 } },
+            ];
+        }
 
-        teams = [
-            { id: 1, name: "Equipo 1", emblem: "⚡", players: [1, 2, 3, 4, 5] },
-            // Agrega más equipos según sea necesario
-        ];
+        if (data && data.teams) {
+            teams = data.teams;
+        } else {
+            teams = [
+                { id: 1, name: "Equipo 1", emblem: "⚡", players: [1, 2, 3, 4, 5] },
+            ];
+        }
     }
 
+    // Crea y añade un nuevo equipo a la lista de equipos
+    function createAndAddTeam(name, emblem) {
+        const newTeam = {
+            id: teams.length > 0 ? Math.max(...teams.map(t => t.id)) + 1 : 1,
+            name,
+            emblem,
+            players: []
+        };
+        teams.push(newTeam);
+        return newTeam;
+    }
+
+    // Agrega un jugador a un equipo
+    function addPlayerToTeam(teamId, playerId) {
+        const team = teams.find(t => t.id === teamId);
+        if (team && !team.players.includes(playerId)) {
+            team.players.push(playerId);
+        }
+    }
+
+    // Elimina un jugador de un equipo
+    function removePlayerFromTeam(teamId, playerId) {
+        const team = teams.find(t => t.id === teamId);
+        if (team) {
+            team.players = team.players.filter(id => id !== playerId);
+        }
+    }
+
+    // Obtiene los jugadores de un equipo
+    function getTeamPlayers(teamId) {
+        const team = teams.find(t => t.id === teamId);
+        return team ? team.players.map(id => players.find(p => p.id === id)) : [];
+    }
+    
     // Obtiene la lista de jugadores
     function getPlayers() {
         return players;
@@ -48,15 +86,17 @@ const Participants = (function() {
         }
     }
 
-    // Inicializa los datos al cargar el módulo
-    initialize();
-
     return {
+        loadParticipants,
         getPlayers,
         getTeams,
         addPlayer,
         removePlayer,
-        updatePlayerAttributes
+        updatePlayerAttributes,
+        createAndAddTeam,
+        addPlayerToTeam,
+        removePlayerFromTeam,
+        getTeamPlayers
     };
 })();
 
