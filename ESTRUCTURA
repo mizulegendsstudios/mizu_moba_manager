@@ -1,15 +1,24 @@
 mizu-esports-simulator/
-├── index.html                  # Interfaz principal del simulador
-├── assets/
+├── index.html                          # Interfaz principal del simulador
+├── scr/
 │   ├── css/
-│   │   └── tailwind.css        # Estilos base con Tailwind (o personalizado)
-│   └── js/
-│       └── simulator.js        # Lógica principal del juego
-├── data/
-│   └── wiki.json               # Contenido de la wiki integrada
-├── docs/
-│   └── roadmap.md              # Detalles de fases de desarrollo
-├── ESTRUCTURA                  # Estructura del Repositorio
-├── LICENSE                     # Licencia AGPL 3.0
-├── README.md                   # Documentación principal
-└── .gitignore                  # Archivos ignorados por Git
+│   │   ├── mainstyle.css               # CSS principal
+│   │   └── tailwind.css                # Estilos base con Tailwind (o personalizado)
+│   ├── js/
+│   │   ├── main.js                     # Archivo principal que importa y coordina los módulos
+│   │   ├── eventLogAndSchedule.js      # A: Registro de eventos y calendario
+│   │   ├── standingsAndBracket.js      # B: Tabla de posiciones y bracket final
+│   │   ├── teamManagement.js           # C: Gestión de equipos
+│   │   ├── achievementsAndWiki.js      # D: Sistema de logros y wiki
+│   │   ├── participants.js             # E: Participantes (equipos y jugadores)
+│   │   ├── saveSystem.js               # F: Sistema de guardado (localStorage)
+│   │   ├── controlsAndCompatibility.js # G: Controles y compatibilidad
+│   │   └── submain.js                  # H: Código restante sin distribuir
+│   ├── json/
+│   │   └── wiki.json                   # Contenido de la wiki integrada
+│   ├── docs/
+│   │   └── roadmap.md                  # Detalles de las fases de desarrollo
+├── ESTRUCTURA                          # Descripción de la estructura del repositorio
+├── LICENSE                             # Licencia AGPL 3.0
+├── README.md                           # Documentación principal
+└── .gitignore                          # Archivos ignorados por Git
