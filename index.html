@@ -3,1159 +3,828 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOBA Manager Liga</title>
+    <title>Fantasy MOBA · Cartas Coleccionables</title>
+    <!-- Tailwind (para agilidad) y Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
+        /* Fuente y estilos personalizados */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            overflow-x: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(145deg, #0a0f1a 0%, #141b2b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #161b22;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: #30363d;
-            border-radius: 4px;
-            border: 2px solid #161b22;
-        }
+        /* Scroll elegante */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 8px; }
+        
+        /* Pestañas activas */
         .tab-btn.active {
-            background-color: #1e232b;
-            border-bottom: 2px solid #0e7490;
+            background: #2d3b4f;
+            color: white;
+            border-bottom: 3px solid #fbbf24;
+            box-shadow: 0 -2px 10px rgba(251, 191, 36, 0.2);
         }
-        .content-tab {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .notification-modal {
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 100;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #fff;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .match-history-win { color: #22c55e; }
-        .match-history-loss { color: #ef4444; }
+
+        /* Efecto carta coleccionable */
         .player-card {
-            width: 14rem;
-            height: 16rem;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 215, 0, 0.2) inset;
+            transition: transform 0.15s ease, box-shadow 0.2s;
+            cursor: pointer;
+            width: 160px;
+            padding: 0.75rem 0.5rem;
         }
-        .player-card-content {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100%;
+        .player-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 25px -8px black, 0 0 0 2px #fbbf24 inset;
         }
-        .social-post {
-            border-radius: 0.75rem;
-            padding: 1rem;
-            background-color: #1e232b;
-            border: 1px solid #30363d;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1rem;
-            animation: slideIn 0.5s ease-out;
+        /* Rarezas */
+        .rarity-common { border-top: 4px solid #94a3b8; }
+        .rarity-rare { border-top: 4px solid #3b82f6; }
+        .rarity-epic { border-top: 4px solid #a855f7; }
+        .rarity-legendary { border-top: 4px solid #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+
+        /* Animación de sobre */
+        .pack-shake {
+            animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
         }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px) rotate(-1deg); }
+            20%, 80% { transform: translateX(6px) rotate(2deg); }
+            30%, 50%, 70% { transform: translateX(-8px) rotate(-3deg); }
+            40%, 60% { transform: translateX(8px) rotate(3deg); }
+        }
+
+        /* Destello al abrir carta */
+        .card-reveal {
+            animation: glowPulse 1s ease-out;
+        }
+        @keyframes glowPulse {
+            0% { filter: brightness(1); }
+            30% { filter: brightness(1.5) drop-shadow(0 0 8px gold); }
+            100% { filter: brightness(1); }
+        }
+
+        /* Notificaciones tipo candy */
+        .toast-msg {
+            background: #2a3a4e;
+            border-left: 6px solid #fbbf24;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
-<body class="bg-[#0d1117]">
-    <div class="container mx-auto p-6 lg:p-12">
-        <div id="game-container" class="w-full max-w-5xl mx-auto p-8 bg-[#161b22] rounded-2xl shadow-lg border border-[#30363d]">
-            <h1 class="text-3xl font-bold text-center mb-6 text-white">MOBA Manager Liga</h1>
-            
-            <div class="flex flex-wrap justify-center mb-6 border-b border-[#30363d]">
-                <button class="tab-btn active px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="log-content">Registro de Eventos</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="standings-content">Tabla</button>
-                <button id="bracket-tab-btn" class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200 hidden" data-tab-target="bracket-content">Bracket Final</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="team-management-content">Gestión de Equipo</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="participants-content">Participantes</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="schedule-content">Calendario</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="wiki-content">Wiki</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors duration-200" data-tab-target="settings-content">Configuración</button>
+<body class="p-4 lg:p-8">
+
+    <!-- Contenedor principal -->
+    <div class="max-w-7xl mx-auto bg-[#0f1420]/90 backdrop-blur-sm rounded-3xl border border-[#2d3b4f] shadow-2xl p-6">
+        
+        <!-- Cabecera con monedas y sonido -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <h1 class="text-3xl font-extrabold bg-gradient-to-r from-amber-300 to-yellow-500 text-transparent bg-clip-text">✨ Fantasy MOBA · Coleccionable ✨</h1>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 bg-[#1e293b] py-2 px-4 rounded-full border border-amber-500/50">
+                    <span class="text-2xl">🪙</span>
+                    <span id="currency-amount" class="font-bold text-xl text-amber-300">500</span>
+                </div>
+                <button id="toggle-sound" class="text-2xl bg-slate-700 p-2 rounded-full hover:bg-slate-600 transition" title="Activar/desactivar sonido">🔊</button>
+            </div>
+        </div>
+
+        <!-- Pestañas -->
+        <div class="flex flex-wrap gap-1 border-b border-slate-700 mb-6">
+            <button class="tab-btn active px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="log">📋 Eventos</button>
+            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="league">🏆 Liga</button>
+            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="collection">📚 Colección</button>
+            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="team">⚔️ Mi Equipo</button>
+            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="packs">🎁 Sobres</button>
+            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="participants">👥 Participantes</button>
+        </div>
+
+        <!-- Contenido de pestañas (todas dinámicas) -->
+        <div id="tab-content" class="min-h-[500px] transition-all">
+            <!-- LOGS (por defecto visible) -->
+            <div id="log-panel" class="tab-panel">
+                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><span class="text-amber-400">📢</span> Noticias del nexo</h2>
+                    <div id="game-log" class="h-96 overflow-y-auto custom-scroll space-y-2 pr-2"></div>
+                </div>
             </div>
 
-            <div id="main-game-content" class="space-y-8">
-
-                <div id="log-content" class="content-tab">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Registro de Eventos</h2>
-                        <div id="game-log" class="h-96 overflow-y-auto custom-scrollbar p-2">
-                        </div>
+            <!-- LIGA (tabla + calendario + bracket) -->
+            <div id="league-panel" class="tab-panel hidden">
+                <div class="grid lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                        <h2 class="text-xl font-bold mb-3">📊 Tabla de posiciones</h2>
+                        <div id="league-standings" class="overflow-x-auto"></div>
                     </div>
-                </div>
-
-                <div id="standings-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Tabla de la Liga</h2>
-                        <div id="league-standings" class="overflow-x-auto">
-                        </div>
+                    <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                        <h2 class="text-xl font-bold mb-3">📅 Jornada <span id="current-week">0</span></h2>
+                        <div id="match-results-container" class="space-y-3 max-h-80 overflow-y-auto custom-scroll"></div>
                     </div>
-                </div>
-
-                <div id="bracket-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Bracket de Doble Eliminación</h2>
-                        <div id="bracket-container" class="space-y-8">
-                        </div>
-                    </div>
-                </div>
-
-                <div id="team-management-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Gestión de Equipo</h2>
-                        
-                        <div class="mb-6 p-4 bg-[#23262d] rounded-lg border border-[#30363d]">
-                            <h3 class="font-medium text-lg mb-2">Personalizar Equipo</h3>
-                            <div class="flex items-center space-x-4 mb-4">
-                                <div>
-                                    <label for="team-name-input" class="block text-sm font-medium text-gray-400">Nombre del Equipo</label>
-                                    <input type="text" id="team-name-input" class="mt-1 block w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-white focus:outline-none focus:ring-[#0e7490] focus:border-[#0e7490]">
-                                </div>
-                                <div>
-                                    <label for="team-emoji-input" class="block text-sm font-medium text-gray-400">Emoji</label>
-                                    <input type="text" id="team-emoji-input" maxlength="2" class="mt-1 block w-20 px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-md text-white text-center focus:outline-none focus:ring-[#0e7490] focus:border-[#0e7490]">
-                                </div>
-                                <button id="update-team-btn" class="mt-auto px-4 py-2 bg-[#0e7490] text-white rounded-md hover:bg-[#08617d]">Actualizar</button>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="p-4 bg-[#161b22] rounded-lg">
-                                    <h4 class="font-semibold mb-2">Historial de Torneos</h4>
-                                    <p>Participados: <span id="tournaments-total">0</span></p>
-                                    <p>🥇 Ganador: <span id="tournaments-1st">0</span></p>
-                                    <p>🥈 Segundo: <span id="tournaments-2nd">0</span></p>
-                                    <p>🥉 Tercero: <span id="tournaments-3rd">0</span></p>
-                                </div>
-                                <div class="p-4 bg-[#161b22] rounded-lg custom-scrollbar h-28 overflow-y-auto">
-                                    <h4 class="font-semibold mb-2">Historial de Partidos</h4>
-                                    <ul id="match-history-list" class="space-y-1"></ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h3 class="font-medium text-lg mb-2">Alineación titular (<span id="starter-count">0/5</span>)</h3>
-                        <div id="starter-players" class="flex flex-wrap gap-4 mb-6">
-                        </div>
-
-                        <h3 class="font-medium text-lg mb-2">Jugadores libres</h3>
-                        <div id="available-players" class="flex flex-wrap gap-4">
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="participants-content" class="content-tab hidden">
-                    <div class="bg-[#1e232d] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Todos los Participantes</h2>
-                        <div id="all-teams-container" class="space-y-6">
-                        </div>
-                    </div>
-                </div>
-
-                <div id="schedule-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Calendario y Resultados (Jornada <span id="current-week">0</span>)</h2>
-                        <div id="match-results-container" class="space-y-4">
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="wiki-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Wiki: Entendiendo el Juego</h2>
-                        <div class="prose prose-sm md:prose-base max-w-none text-gray-300">
-                            <h3 class="font-bold text-white mb-2">Cómo se determinan las victorias</h3>
-                            <p>En cada partida, el juego calcula un "Poder Total" para tu equipo y para el equipo rival. El equipo con el mayor poder total es el ganador.</p>
-                            
-                            <h3 class="font-bold text-white mt-4 mb-2">Impacto de los Atributos</h3>
-                            <p>Cada jugador de tu **alineación titular** (los 5 que has seleccionado) contribuye al Poder Total del equipo. Todos los atributos de los jugadores se suman por igual para generar su poder individual, y la suma de los poderes de los 5 jugadores es el poder base del equipo. Por lo tanto, cada atributo es igualmente importante y un jugador con puntuaciones más altas en general hará que tu equipo sea más fuerte.</p>
-                            <ul class="list-disc list-inside space-y-2 mt-4">
-                                <li><strong>Visión:</strong> La habilidad del jugador para ver el mapa y anticipar los movimientos del enemigo.</li>
-                                <li><strong>Reflejos:</strong> La rapidez de reacción del jugador en situaciones de combate.</li>
-                                <li><strong>Comunicación:</strong> La efectividad del jugador para coordinar con sus compañeros.</li>
-                                <li><strong>Tecnología:</strong> La calidad de su equipamiento y conexión a internet.</li>
-                                <li><strong>Trabajo en equipo:</strong> La capacidad de un jugador para colaborar y sincronizarse con su equipo.</li>
-                                <li><strong>Estado de ánimo:</strong> El nivel de concentración y motivación mental del jugador.</li>
-                            </ul>
-                            
-                            <h3 class="font-bold text-white mt-4 mb-2">El Factor de Aleatoriedad</h3>
-                            <p>Para hacer las partidas más impredecibles y realistas, el juego añade un factor aleatorio al resultado final. Sin embargo, este factor está controlado: la probabilidad de que el equipo con menos poder gane disminuye a medida que la diferencia de poder entre los equipos aumenta. Esto asegura que los equipos más fuertes siempre tengan una ventaja clara, pero deja espacio para sorpresas en partidas reñidas.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="settings-content" class="content-tab hidden">
-                    <div class="bg-[#1e232b] p-6 rounded-xl border border-[#30363d]">
-                        <h2 class="text-xl font-semibold mb-4 text-white">Configuración del Juego</h2>
-                        <p class="text-sm text-gray-400">Aquí podrás ajustar las opciones del juego en futuras actualizaciones.</p>
+                    <div class="lg:col-span-3 bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                        <h2 class="text-xl font-bold mb-3">🧩 Bracket eliminatorio</h2>
+                        <div id="bracket-container" class="min-h-[150px]"></div>
                     </div>
                 </div>
             </div>
-            
-            <div id="game-controls" class="mt-8 flex flex-col md:flex-row justify-center gap-4">
-                <button id="next-step-btn" class="px-8 py-4 bg-[#0e7490] text-white font-bold rounded-lg shadow-md hover:bg-[#08617d] transition-colors duration-200">
-                    Simular Siguiente Jornada
-                </button>
-                <button id="new-season-btn" class="px-8 py-4 bg-[#1f2937] text-white font-bold rounded-lg shadow-md hover:bg-[#374151] transition-colors duration-200 hidden">
-                    Iniciar Nueva Temporada
-                </button>
-            </div>
 
-            <div id="notification-modal" class="notification-modal fixed inset-0 flex items-center justify-center hidden">
-                <div class="bg-[#1e232b] p-8 rounded-xl border border-[#30363d] text-center max-w-sm w-full mx-4">
-                    <h3 id="modal-title" class="text-2xl font-bold mb-4 text-white"></h3>
-                    <p id="modal-content" class="text-lg mb-6"></p>
-                    <button id="close-modal-btn" class="px-6 py-2 bg-[#0e7490] text-white font-bold rounded-lg hover:bg-[#08617d]">Aceptar</button>
+            <!-- COLECCIÓN (todas las cartas del usuario) -->
+            <div id="collection-panel" class="tab-panel hidden">
+                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">📇 Tus cartas ( <span id="collection-count">0</span> )</h2>
+                        <div class="flex gap-2">
+                            <select id="rarity-filter" class="bg-slate-800 rounded-lg px-3 py-1 text-sm border border-slate-600">
+                                <option value="all">Todas</option>
+                                <option value="common">Común</option>
+                                <option value="rare">Rara</option>
+                                <option value="epic">Épica</option>
+                                <option value="legendary">Legendaria</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 justify-items-center"></div>
                 </div>
             </div>
-            
+
+            <!-- MI EQUIPO (alineación) -->
+            <div id="team-panel" class="tab-panel hidden">
+                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                    <h2 class="text-xl font-bold mb-3">⚔️ Alineación titular (<span id="starter-count">0/5</span>)</h2>
+                    <div id="starter-players" class="flex flex-wrap gap-4 justify-center mb-8 min-h-[200px] bg-slate-900/40 rounded-xl p-4"></div>
+                    
+                    <h2 class="text-xl font-bold mb-3">📦 Reservas (haz clic para subir/bajar)</h2>
+                    <div id="available-players" class="flex flex-wrap gap-4 justify-center"></div>
+
+                    <div class="mt-6 flex gap-3">
+                        <input type="text" id="team-name-input" placeholder="Nombre del equipo" class="bg-slate-800 rounded-lg px-4 py-2 border border-slate-600">
+                        <input type="text" id="team-emoji-input" maxlength="2" placeholder="Emoji" class="w-16 bg-slate-800 rounded-lg px-2 py-2 border border-slate-600 text-center">
+                        <button id="update-team-btn" class="bg-amber-600 hover:bg-amber-700 px-6 py-2 rounded-lg font-bold">Actualizar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOBRES (apertura) -->
+            <div id="packs-panel" class="tab-panel hidden">
+                <div class="bg-[#1a2538] rounded-2xl p-6 border border-slate-700 text-center">
+                    <h2 class="text-3xl font-bold mb-6">🎁 Tienda de sobres</h2>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-10">
+                        <div class="bg-gradient-to-b from-yellow-900 to-amber-800 p-6 rounded-3xl shadow-2xl w-64 border-4 border-amber-500">
+                            <div class="text-8xl mb-2 select-none">📦</div>
+                            <p class="text-2xl font-bold">Sobre básico</p>
+                            <p class="text-amber-300 text-xl mt-1">100 🪙</p>
+                            <button id="open-basic-pack" class="mt-4 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold text-lg transition">Abrir</button>
+                        </div>
+                        <div class="bg-gradient-to-b from-purple-900 to-purple-800 p-6 rounded-3xl shadow-2xl w-64 border-4 border-purple-400">
+                            <div class="text-8xl mb-2 select-none">✨📦</div>
+                            <p class="text-2xl font-bold">Sobre premium</p>
+                            <p class="text-purple-300 text-xl mt-1">250 🪙</p>
+                            <button id="open-premium-pack" class="mt-4 w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-bold text-lg transition">Abrir</button>
+                        </div>
+                    </div>
+                    <!-- Resultado de apertura -->
+                    <div id="pack-result" class="mt-10 grid grid-cols-2 md:grid-cols-5 gap-4 justify-items-center"></div>
+                </div>
+            </div>
+
+            <!-- PARTICIPANTES (todos los equipos) -->
+            <div id="participants-panel" class="tab-panel hidden">
+                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
+                    <h2 class="text-xl font-bold mb-4">🌍 Equipos de la liga</h2>
+                    <div id="all-teams-container" class="space-y-6"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles de simulación -->
+        <div class="mt-8 flex flex-wrap gap-4 justify-center">
+            <button id="next-step-btn" class="bg-cyan-600 hover:bg-cyan-700 px-10 py-4 rounded-xl font-bold text-xl shadow-lg transition flex items-center gap-2">⏩ Siguiente jornada</button>
+            <button id="new-season-btn" class="bg-slate-700 hover:bg-slate-600 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hidden">🔄 Nueva temporada</button>
+        </div>
+    </div>
+
+    <!-- Modal de apertura (bonito) -->
+    <div id="pack-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+        <div class="bg-[#1e2a3a] p-6 rounded-3xl border-4 border-amber-500 max-w-2xl w-full mx-4 shadow-2xl">
+            <h3 class="text-3xl font-bold text-center mb-4" id="pack-modal-title">¡Sobre abierto!</h3>
+            <div id="pack-modal-cards" class="grid grid-cols-2 md:grid-cols-3 gap-4 justify-items-center"></div>
+            <button id="close-pack-modal" class="mt-6 bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-xl font-bold mx-auto block">Aceptar</button>
         </div>
     </div>
 
     <script>
-        // Data for random generation of players and teams
-        const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel", "Fernando", "Carla", "Miguel", "Andrea"];
-        const lastNames = ["García", "Rodríguez", "López", "Martínez", "Pérez", "González", "Sánchez", "Romero", "Díaz", "Torres", "Ramírez", "Flores", "Gómez", "Morales", "Ortiz", "Navarro", "Jiménez", "Ruiz", "Hernández", "Cruz"];
-        const nationalities = [
-            "Argentina 🇦🇷", "Brasil 🇧🇷", "Canadá 🇨🇦", "Chile 🇨🇱", "Colombia 🇨🇴", "México 🇲🇽", "España 🇪🇸", "EE. UU. 🇺🇸", "Japón 🇯🇵", "Corea del Sur 🇰🇷",
-            "Panamá 🇵🇦", "Costa Rica 🇨🇷", "Guatemala 🇬🇹", "Honduras 🇭🇳", "El Salvador 🇸🇻", "Nicaragua 🇳🇮"
-        ];
-        const attributes = ["vision", "reflexes", "communication", "tecnologia", "teamwork", "mood"];
-        
-        const teamNames = ["Los Dragones 🐉", "La Hermandad 🛡️", "Los Espectros 👻", "La Élite 👑", "Los Titanes ⛰️", "Las Sombras 🌑"];
-        const playerEmojis = ["🥷", "🧙‍♀️", "🏹", "🗡️", "🛡️", "🤖", "👹", "👽", "🦄", "🐼"];
-
-        let userTeamIndex = 0;
-        let playerIdCounter = 1;
-        
-        // Initial game state
-        let gameState = {
-            teams: [],
-            schedule: [],
-            results: [],
-            currentWeek: 0,
-            season: 1,
-            bracket: {
-                phase: 'regular',
-                pendingMatches: [],
-                wbHistory: [],
-                lbHistory: [],
-                gfHistory: [],
-                winner: null
-            }
-        };
-
-        let tournamentStats = { first: 0, second: 0, third: 0, total: 0 };
-        let userTeamHistory = [];
-        
-        // Utility functions
-        function createPlayer() {
-            const player = {
-                id: playerIdCounter++,
-                name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
-                emoji: playerEmojis[Math.floor(Math.random() * playerEmojis.length)],
-                nationality: nationalities[Math.floor(Math.random() * nationalities.length)],
-                attributes: {}
-            };
-            attributes.forEach(attr => {
-                player.attributes[attr] = Math.floor(Math.random() * 100) + 1;
-            });
-            return player;
-        }
-
-        function generateTeamsAndPlayers() {
-            for (let i = 0; i < teamNames.length; i++) {
-                const teamName = teamNames[i];
-                const teamKey = teamName.split(" ")[0] + teamName.split(" ")[1].replace(/\p{Emoji}/u, '');
-                const team = {
-                    name: teamName,
-                    key: teamKey,
-                    players: [],
-                    starters: [],
-                    wins: 0,
-                    losses: 0,
-                    gamesWon: 0,
-                    gamesLost: 0,
-                    points: 0,
-                    emoji: teamName.split(" ").pop(),
-                    bracketLosses: 0,
-                    isUserTeam: i === userTeamIndex,
-                };
-                for (let j = 0; j < 10; j++) {
-                    team.players.push(createPlayer());
+        (function() {
+            // --------------------------------------------------------------
+            // 1. Gestor de sonido (simulado con Web Audio, adictivo)
+            // --------------------------------------------------------------
+            class SoundManager {
+                constructor() {
+                    this.audioCtx = null;
+                    this.muted = false;
+                    this.init();
                 }
-                gameState.teams.push(team);
-            }
-        }
-
-        function generateSchedule() {
-            const numTeams = gameState.teams.length;
-            const pairings = [];
-            for (let i = 0; i < numTeams; i++) {
-                for (let j = i + 1; j < numTeams; j++) {
-                    pairings.push([i, j]);
+                init() {
+                    try {
+                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (e) { console.warn("Web Audio no soportado"); }
                 }
-            }
-            gameState.schedule = pairings.sort(() => Math.random() - 0.5);
-            
-            const totalWeeks = (numTeams * (numTeams - 1)) / 2 / (numTeams / 2);
-            const matchesPerWeek = numTeams / 2;
-            const weeklySchedule = [];
-            
-            for (let w = 0; w < totalWeeks; w++) {
-                weeklySchedule.push(gameState.schedule.splice(0, matchesPerWeek));
-            }
-            gameState.schedule = weeklySchedule;
-        }
-
-        function simulateGame(team1, team2) {
-            const team1Power = team1.starters.reduce((sum, player) => {
-                return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
-            }, 0);
-
-            const team2Power = team2.starters.reduce((sum, player) => {
-                return sum + Object.values(player.attributes).reduce((s, val) => s + val, 0);
-            }, 0);
-            
-            let winner;
-
-            const powerDiff = Math.abs(team1Power - team2Power);
-            const weakerTeamChance = Math.max(0, 0.5 - (powerDiff / 500));
-
-            if (team1Power > team2Power) {
-                winner = (Math.random() < weakerTeamChance) ? team2.key : team1.key;
-            } else {
-                winner = (Math.random() < weakerTeamChance) ? team1.key : team2.key;
-            }
-            return winner;
-        }
-
-        function simulateMatch(team1, team2, isBracket = false) {
-            if (!team1 || !team2) {
-                return null;
-            }
-            
-            // If a non-user team doesn't have a starting lineup, assign a random one.
-            if (!team1.isUserTeam && team1.starters.length === 0) {
-                team1.starters = team1.players.sort(() => 0.5 - Math.random()).slice(0, 5);
-            }
-            if (!team2.isUserTeam && team2.starters.length === 0) {
-                team2.starters = team2.players.sort(() => 0.5 - Math.random()).slice(0, 5);
-            }
-
-            let gamesWon1 = 0;
-            let gamesWon2 = 0;
-            let winnerKey = null;
-            let loserKey = null;
-
-            for(let i = 0; i < 3; i++) {
-                if (gamesWon1 === 2 || gamesWon2 === 2) {
-                    break;
-                }
-                const gameWinnerKey = simulateGame(team1, team2);
-                if (gameWinnerKey === team1.key) {
-                    gamesWon1++;
-                } else {
-                    gamesWon2++;
-                }
-            }
-            
-            if (gamesWon1 > gamesWon2) {
-                winnerKey = team1.key;
-                loserKey = team2.key;
-            } else {
-                winnerKey = team2.key;
-                loserKey = team1.key;
-            }
-            
-            if (team1.isUserTeam || team2.isUserTeam) {
-                const userTeam = gameState.teams.find(t => t.isUserTeam);
-                userTeamHistory.push({
-                    opponent: winnerKey === userTeam.key ? team2.name : team1.name,
-                    result: winnerKey === userTeam.key ? "Victoria" : "Derrota",
-                    gameScore: `${gamesWon1}-${gamesWon2}`,
-                    round: isBracket ? `T${gameState.season}-${gameState.bracket.phase}` : `T${gameState.season}-Jornada ${gameState.currentWeek + 1}`
-                });
-            }
-
-            return { winnerKey, loserKey, gamesWon1, gamesWon2 };
-        }
-        
-        function simulateNextStep() {
-            if (gameState.bracket.winner) {
-                showLeagueEndNotification();
-                return;
-            }
-
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-
-            if (gameState.bracket.phase === 'regular') {
-                if (gameState.currentWeek >= gameState.schedule.length) {
-                    const sortedTeams = [...gameState.teams].sort((a, b) => {
-                        if (b.wins !== a.wins) {
-                            return b.wins - a.wins;
-                        }
-                        return b.gamesWon - a.gamesWon;
-                    });
+                toggle() { this.muted = !this.muted; return this.muted; }
+                play(type) {
+                    if (this.muted || !this.audioCtx) return;
+                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                    const now = this.audioCtx.currentTime;
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
                     
-                    const topFourTeams = sortedTeams.slice(0, 4);
-                    
-                    tournamentStats.total++;
-
-                    const userTeamInBracket = topFourTeams.some(t => t.isUserTeam);
-                    if (!userTeamInBracket) {
-                        const userTeamRank = sortedTeams.findIndex(t => t.isUserTeam) + 1;
-                        addSocialPost("league", `¡La temporada regular ha terminado! Tu equipo terminó en el puesto #${userTeamRank} y no ha clasificado para el bracket final.`, "📊");
-                    } else {
-                        addSocialPost("league", "¡Tu equipo ha clasificado para el bracket final! ¡Mucha suerte en los playoffs!", "🔥");
-                    }
-
-                    nextStepBtn.textContent = "Simular Siguiente Encuentro";
-                    nextStepBtn.classList.remove('bg-[#0e7490]', 'hover:bg-[#08617d]');
-                    nextStepBtn.classList.add('bg-[#eab308]', 'hover:bg-[#a16207]');
-                    showBracketView();
-
-                    gameState.bracket.phase = 'wb1';
-                    gameState.bracket.pendingMatches = [
-                        {team1: topFourTeams[0], team2: topFourTeams[3]},
-                        {team1: topFourTeams[1], team2: topFourTeams[2]}
-                    ];
-                    renderUI();
-                    return;
-                }
-
-                if (userTeam.starters.length !== 5) {
-                    addSocialPost("alert", "¡Atención! Debes seleccionar 5 jugadores titulares para tu equipo antes de simular.", "⚠️");
-                    return;
-                }
-
-                const weekMatches = gameState.schedule[gameState.currentWeek];
-                addSocialPost("league", `--- Comienza la Jornada ${gameState.currentWeek + 1} ---`, "📢");
-                
-                weekMatches.forEach(match => {
-                    const team1 = gameState.teams[match[0]];
-                    const team2 = gameState.teams[match[1]];
-
-                    const { winnerKey, loserKey, gamesWon1, gamesWon2 } = simulateMatch(team1, team2);
-
-                    const winnerTeam = gameState.teams.find(t => t.key === winnerKey);
-                    const loserTeam = gameState.teams.find(t => t.key === loserKey);
-
-                    // Bug fix: Correctly assign games won and lost to each team.
-                    // The variables gamesWon1 and gamesWon2 are tied to the order of team1 and team2 in the match.
-                    let winnerGamesWon, loserGamesWon;
-                    if (team1.key === winnerKey) {
-                        winnerGamesWon = gamesWon1;
-                        loserGamesWon = gamesWon2;
-                    } else {
-                        winnerGamesWon = gamesWon2;
-                        loserGamesWon = gamesWon1;
-                    }
-
-                    if(winnerTeam) {
-                         winnerTeam.wins++;
-                         winnerTeam.gamesWon += winnerGamesWon;
-                         winnerTeam.gamesLost += loserGamesWon;
-                    }
-                    if(loserTeam) {
-                        loserTeam.losses++;
-                        loserTeam.gamesWon += loserGamesWon;
-                        loserTeam.gamesLost += winnerGamesWon;
-                    }
-
-                    const result = {
-                        week: gameState.currentWeek + 1,
-                        team1: team1.name,
-                        team2: team2.name,
-                        winner: winnerTeam.name,
-                        score: `${winnerGamesWon}-${loserGamesWon}`
-                    };
-                    gameState.results.push(result);
-                    addSocialPost("match", `${winnerTeam.emoji} ${winnerTeam.name} (${result.score}) vence a ${loserTeam.emoji} ${loserTeam.name} en la Jornada ${gameState.currentWeek + 1}!`, "✅");
-                });
-                
-                gameState.currentWeek++;
-                renderUI();
-                
-            } else {
-                if (gameState.bracket.pendingMatches.length > 0) {
-                    const match = gameState.bracket.pendingMatches.shift();
-                    const team1 = match.team1;
-                    const team2 = match.team2;
-
-                    const { winnerKey, loserKey, gamesWon1, gamesWon2 } = simulateMatch(team1, team2, true);
-                    const winnerTeam = gameState.teams.find(t => t.key === winnerKey);
-                    const loserTeam = gameState.teams.find(t => t.key === loserKey);
-                    
-                    const result = { team1, team2, winner: winnerTeam, loser: loserTeam, score: `${gamesWon1}-${gamesWon2}` };
-
-                    if (gameState.bracket.phase.startsWith('wb')) {
-                        gameState.bracket.wbHistory.push(result);
-                        if(loserTeam) loserTeam.bracketLosses++;
-                    } else if (gameState.bracket.phase.startsWith('lb')) {
-                        gameState.bracket.lbHistory.push(result);
-                        if(loserTeam) loserTeam.bracketLosses++;
-                    } else if (gameState.bracket.phase === 'grand-final') {
-                        gameState.bracket.gfHistory.push(result);
-                        gameState.bracket.winner = winnerTeam;
-                        addSocialPost("league", `¡El campeón es ${winnerTeam.emoji} ${winnerTeam.name}!`, "🏆");
-                    }
-
-                    if (gameState.bracket.phase !== 'grand-final' && loserTeam && loserTeam.bracketLosses === 2) {
-                        addSocialPost("elimination", `${loserTeam.emoji} ${loserTeam.name} ha sido eliminado del torneo.`, "❌");
-                    }
-
-                    addSocialPost("match", `[${team1.emoji} ${team1.name} vs ${team2.emoji} ${team2.name}] - Ganador: ${winnerTeam.emoji} ${winnerTeam.name} (${gamesWon1}-${gamesWon2})`, "⚔️");
-                    
-                }
-
-                if (gameState.bracket.pendingMatches.length === 0) {
-                    let nextMatches = [];
-                    switch(gameState.bracket.phase) {
-                        case 'wb1':
-                            addSocialPost("announcement", "--- Bracket: Ronda de Perdedores 1 ---", "➡️");
-                            const wb1Losers = gameState.bracket.wbHistory.slice(0, 2).map(m => m.loser).filter(t => t && t.bracketLosses < 2);
-                            if (wb1Losers.length > 1) {
-                                nextMatches.push({team1: wb1Losers[0], team2: wb1Losers[1]});
-                            }
-                            gameState.bracket.phase = 'lb1';
-                            nextStepBtn.textContent = "Simular Siguiente Encuentro";
+                    switch(type) {
+                        case 'packOpen': // crujido de sobre + subida
+                            osc.type = 'triangle';
+                            osc.frequency.value = 300;
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                            osc.start(now);
+                            osc.stop(now + 0.3);
+                            // segundo armónico
+                            const osc2 = this.audioCtx.createOscillator();
+                            osc2.type = 'sine';
+                            osc2.frequency.value = 600;
+                            osc2.connect(gain);
+                            osc2.start(now);
+                            osc2.stop(now + 0.2);
                             break;
-                        case 'lb1':
-                            addSocialPost("announcement", "--- Bracket: Final de Ganadores ---", "👑");
-                            const wb1Winners = gameState.bracket.wbHistory.slice(0, 2).map(m => m.winner).filter(t => t && t.bracketLosses < 2);
-                            if (wb1Winners.length > 1) {
-                                nextMatches.push({team1: wb1Winners[0], team2: wb1Winners[1]});
-                            }
-                            gameState.bracket.phase = 'wb-final';
-                            nextStepBtn.textContent = "Simular Final de Ganadores";
+                        case 'rare': // brillo legendario
+                            osc.type = 'sine';
+                            osc.frequency.value = 880;
+                            gain.gain.setValueAtTime(0.3, now);
+                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                            osc.start(now);
+                            osc.stop(now + 0.6);
                             break;
-                        case 'wb-final':
-                            addSocialPost("announcement", "--- Bracket: Final de Perdedores ---", "🔥");
-                            const wbLoser = gameState.bracket.wbHistory[2].loser;
-                            const lb1Winner = gameState.bracket.lbHistory[0] ? gameState.bracket.lbHistory[0].winner : null;
-                            if (wbLoser && wbLoser.bracketLosses < 2 && lb1Winner && lb1Winner.bracketLosses < 2) {
-                                nextMatches.push({team1: wbLoser, team2: lb1Winner});
-                            }
-                            gameState.bracket.phase = 'lb-final';
-                            nextStepBtn.textContent = "Simular Final de Perdedores";
+                        case 'victory': // fanfarria simple
+                            osc.type = 'square';
+                            osc.frequency.value = 523.25;
+                            gain.gain.setValueAtTime(0.2, now);
+                            gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                            osc.start(now);
+                            osc.stop(now + 0.15);
+                            setTimeout(() => {
+                                const osc3 = this.audioCtx.createOscillator();
+                                osc3.type = 'square';
+                                osc3.frequency.value = 659.25;
+                                osc3.connect(gain);
+                                gain.gain.setValueAtTime(0.2, now+0.2);
+                                gain.gain.linearRampToValueAtTime(0.01, now+0.35);
+                                osc3.start(now+0.2);
+                                osc3.stop(now+0.35);
+                            }, 200);
                             break;
-                        case 'lb-final':
-                            const wbFinalist = gameState.bracket.wbHistory[2].winner;
-                            const lbFinalist = gameState.bracket.lbHistory[1].winner;
-                            if (wbFinalist && lbFinalist) {
-                                addSocialPost("announcement", `--- ¡La Gran Final! ${wbFinalist.emoji} ${wbFinalist.name} vs ${lbFinalist.emoji} ${lbFinalist.name} ---`, "🌟");
-                                nextMatches.push({team1: wbFinalist, team2: lbFinalist});
-                                gameState.bracket.phase = 'grand-final';
-                                nextStepBtn.textContent = "Simular Gran Final";
-                            } else {
-                                addSocialPost("alert", "Error: No se pudo determinar los finalistas. La temporada ha terminado inesperadamente.", "⚠️");
-                                gameState.bracket.winner = gameState.teams.find(t => t.bracketLosses === 1) || gameState.teams[0];
-                                showLeagueEndNotification();
-                            }
-                            break;
-                        case 'grand-final':
-                             showLeagueEndNotification();
-                             break;
+                        case 'click':
                         default:
-                            break;
-                    }
-
-                    gameState.bracket.pendingMatches = nextMatches;
-                }
-                renderUI();
-            }
-            setActiveTab('log-content');
-        }
-
-        function updateTournamentStats() {
-            const winner = gameState.bracket.gfHistory[0]?.winner;
-            const second = gameState.bracket.gfHistory[0]?.loser;
-            const third = gameState.bracket.lbHistory[1]?.loser;
-            const fourth = gameState.bracket.lbHistory[0]?.loser;
-
-            if (winner && winner.isUserTeam) {
-                tournamentStats.first++;
-                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en primer lugar! 🥇", "🎉");
-            }
-            if (second && second.isUserTeam) {
-                tournamentStats.second++;
-                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en segundo lugar! 🥈", "🎉");
-            }
-            if (third && third.isUserTeam) {
-                tournamentStats.third++;
-                addSocialPost("achievement", "¡Felicidades, tu equipo ha quedado en tercer lugar! 🥉", "🎉");
-            }
-            if (fourth && fourth.isUserTeam) {
-                 addSocialPost("achievement", "Tu equipo ha quedado en cuarto lugar.", "👏");
-            }
-        }
-
-        const leagueStandingsContainer = document.getElementById('league-standings');
-        const teamNameInput = document.getElementById('team-name-input');
-        const teamEmojiInput = document.getElementById('team-emoji-input');
-        const updateTeamBtn = document.getElementById('update-team-btn');
-        const tournamentsTotalSpan = document.getElementById('tournaments-total');
-        const tournaments1stSpan = document.getElementById('tournaments-1st');
-        const tournaments2ndSpan = document.getElementById('tournaments-2nd');
-        const tournaments3rdSpan = document.getElementById('tournaments-3rd');
-        const matchHistoryList = document.getElementById('match-history-list');
-        const starterPlayersContainer = document.getElementById('starter-players');
-        const availablePlayersContainer = document.getElementById('available-players');
-        const starterCountSpan = document.getElementById('starter-count');
-        const gameLogContainer = document.getElementById('game-log');
-        const matchResultsContainer = document.getElementById('match-results-container');
-        const currentWeekSpan = document.getElementById('current-week');
-        const nextStepBtn = document.getElementById('next-step-btn');
-        const newSeasonBtn = document.getElementById('new-season-btn');
-        const notificationModal = document.getElementById('notification-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContent = document.getElementById('modal-content');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const contentTabs = document.querySelectorAll('.content-tab');
-        const bracketTabBtn = document.getElementById('bracket-tab-btn');
-        const bracketContainer = document.getElementById('bracket-container');
-        const allTeamsContainer = document.getElementById('all-teams-container');
-        
-        const charts = {};
-
-        function showModal(title, content) {
-            modalTitle.textContent = title;
-            modalContent.innerHTML = content;
-            notificationModal.classList.remove('hidden');
-        }
-
-        function setActiveTab(targetTab) {
-            contentTabs.forEach(tab => tab.classList.add('hidden'));
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById(targetTab).classList.remove('hidden');
-            document.querySelector(`[data-tab-target="${targetTab}"]`).classList.add('active');
-        }
-
-        function handleTabClick(event) {
-            const targetTab = event.currentTarget.dataset.tabTarget;
-            setActiveTab(targetTab);
-        }
-
-        function renderStandings() {
-            const sortedTeams = [...gameState.teams].sort((a, b) => {
-                if (b.wins !== a.wins) {
-                    return b.wins - a.wins;
-                }
-                return b.gamesWon - a.gamesWon;
-            });
-
-            let tableHTML = `<table class="min-w-full text-sm text-left text-gray-400 rounded-lg overflow-hidden">
-                                <thead class="text-xs text-gray-200 uppercase bg-[#30363d]">
-                                    <tr>
-                                        <th scope="col" class="py-3 px-4 rounded-tl-lg">#</th>
-                                        <th scope="col" class="py-3 px-4">Equipo</th>
-                                        <th scope="col" class="py-3 px-4">Jugados (E)</th>
-                                        <th scope="col" class="py-3 px-4">Victorias (E)</th>
-                                        <th scope="col" class="py-3 px-4">Derrotas (E)</th>
-                                        <th scope="col" class="py-3 px-4">Jugadas (P)</th>
-                                        <th scope="col" class="py-3 px-4">Victorias (P)</th>
-                                        <th scope="col" class="py-3 px-4 rounded-tr-lg">Derrotas (P)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-            
-            sortedTeams.forEach((team, index) => {
-                const isUserTeam = team.isUserTeam;
-                const rowClass = isUserTeam ? 'bg-[#0e7490] text-white' : 'bg-[#1e232b] border-b border-[#30363d] last:border-b-0';
-                const cellClass = isUserTeam ? 'text-white' : '';
-                const gamesPlayed = team.wins + team.losses;
-                const gamesTotal = team.gamesWon + team.gamesLost;
-
-                tableHTML += `<tr class="${rowClass}">
-                                <td class="py-3 px-4 font-bold ${cellClass}">${index + 1}</td>
-                                <td class="py-3 px-4 ${cellClass}">${team.emoji} ${team.name}</td>
-                                <td class="py-3 px-4 ${cellClass}">${gamesPlayed}</td>
-                                <td class="py-3 px-4 text-green-400 ${cellClass}">${team.wins}</td>
-                                <td class="py-3 px-4 text-red-400 ${cellClass}">${team.losses}</td>
-                                <td class="py-3 px-4 ${cellClass}">${gamesTotal}</td>
-                                <td class="py-3 px-4 text-green-400 ${cellClass}">${team.gamesWon}</td>
-                                <td class="py-3 px-4 text-red-400 ${cellClass}">${team.gamesLost}</td>
-                              </tr>`;
-            });
-
-            tableHTML += `</tbody></table>`;
-            leagueStandingsContainer.innerHTML = tableHTML;
-        }
-
-        function renderMatchResults() {
-            matchResultsContainer.innerHTML = '';
-            
-            if (gameState.currentWeek < gameState.schedule.length) {
-                const weekMatches = gameState.schedule[gameState.currentWeek];
-                weekMatches.forEach(match => {
-                    const team1 = gameState.teams[match[0]];
-                    const team2 = gameState.teams[match[1]];
-
-                    let resultText = "Próximo partido";
-                    const matchResult = gameState.results.find(r => 
-                        (r.team1 === team1.name && r.team2 === team2.name) || 
-                        (r.team1 === team2.name && r.team2 === team1.name)
-                    );
-
-                    if (matchResult) {
-                        resultText = `Ganador: ${matchResult.winner === team1.name ? team1.emoji : team2.emoji} ${matchResult.winner} (${matchResult.score})`;
-                    }
-
-                    const matchCard = document.createElement('div');
-                    matchCard.className = "p-4 bg-[#23262d] rounded-xl border border-[#30363d]";
-                    matchCard.innerHTML = `
-                        <p class="text-sm">Jornada ${gameState.currentWeek + 1}</p>
-                        <div class="flex items-center justify-between mt-1">
-                            <span class="font-bold text-white">${team1.emoji} ${team1.name}</span>
-                            <span class="text-gray-400">vs</span>
-                            <span class="font-bold text-white">${team2.emoji} ${team2.name}</span>
-                        </div>
-                        <p class="mt-2 text-center text-sm font-semibold">${resultText}</p>
-                    `;
-                    matchResultsContainer.appendChild(matchCard);
-                });
-            } else {
-                matchResultsContainer.innerHTML = `<p class="text-center text-gray-400">La temporada regular ha terminado.</p>`;
-            }
-        }
-        
-        function renderPlayerManagement() {
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-            teamNameInput.value = userTeam.name;
-            teamEmojiInput.value = userTeam.emoji;
-            tournamentsTotalSpan.textContent = tournamentStats.total;
-            tournaments1stSpan.textContent = tournamentStats.first;
-            tournaments2ndSpan.textContent = tournamentStats.second;
-            tournaments3rdSpan.textContent = tournamentStats.third;
-            starterCountSpan.textContent = `${userTeam.starters.length}/5`;
-
-            matchHistoryList.innerHTML = '';
-            userTeamHistory.forEach(match => {
-                const li = document.createElement('li');
-                const resultClass = match.result === 'Victoria' ? 'match-history-win' : 'match-history-loss';
-                const resultText = match.result === 'Victoria' ? 'Victoria' : 'Derrota';
-                li.className = `text-sm ${resultClass}`;
-                li.innerHTML = `${match.round}: vs ${match.opponent} - <strong>${resultText} (${match.gameScore})</strong>`;
-                matchHistoryList.appendChild(li);
-            });
-
-            starterPlayersContainer.innerHTML = '';
-            availablePlayersContainer.innerHTML = '';
-            
-            const availablePlayers = userTeam.players.filter(player => !userTeam.starters.some(s => s.id === player.id));
-
-            userTeam.starters.forEach(player => {
-                renderPlayerCard(player, starterPlayersContainer, true, false);
-            });
-
-            availablePlayers.forEach(player => {
-                renderPlayerCard(player, availablePlayersContainer, false, false);
-            });
-
-            // Bug fix: Add a timeout to ensure canvas elements are in the DOM before rendering charts
-            setTimeout(() => {
-                userTeam.starters.forEach(player => {
-                    renderRadarChart(player, false);
-                });
-                availablePlayers.forEach(player => {
-                    renderRadarChart(player, false);
-                });
-            }, 50);
-        }
-
-        function renderPlayerCard(player, container, isStarter, isParticipantView = false) {
-            const cardId = `player-card-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
-            const playerCard = document.createElement('div');
-            playerCard.dataset.playerId = player.id;
-            playerCard.id = cardId;
-            playerCard.className = `p-3 rounded-xl shadow-md transition-all duration-200 flex flex-col items-center space-y-2 player-card ${isStarter ? 'bg-[#0e7490] hover:bg-[#08617d] cursor-pointer' : 'bg-[#23262d] hover:bg-[#1e232b] cursor-pointer'}`;
-            
-            if (isParticipantView) {
-                 playerCard.classList.remove('hover:bg-[#08617d]', 'hover:bg-[#1e232b]', 'cursor-pointer');
-            }
-
-            const chartCanvasId = `chart-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
-            const cardContent = `
-                <div class="player-card-content text-center w-full">
-                    <div class="flex-grow flex flex-col items-center justify-center">
-                        <span class="text-3xl">${player.emoji}</span>
-                        <p class="font-medium text-white text-sm">${player.name}</p>
-                        <p class="text-xs text-gray-400">${player.nationality}</p>
-                    </div>
-                    <div class="flex-shrink-0 w-full h-24">
-                        <canvas id="${chartCanvasId}" class="w-full h-full"></canvas>
-                    </div>
-                </div>
-            `;
-            
-            playerCard.innerHTML = cardContent;
-            
-            if (!isParticipantView) {
-                playerCard.addEventListener('click', () => {
-                    toggleStarter(player);
-                    renderPlayerManagement();
-                });
-            }
-            container.appendChild(playerCard);
-        }
-
-        function renderRadarChart(player, isParticipantView) {
-            const canvasId = `chart-${player.id}-${isParticipantView ? 'part' : 'mng'}`;
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            
-            if (charts[canvasId]) {
-                charts[canvasId].destroy();
-            }
-
-            const attributeValues = Object.values(player.attributes);
-            const attributeLabels = Object.keys(player.attributes).map(label => label.charAt(0).toUpperCase() + label.slice(1));
-            
-            const newChart = new Chart(canvas, {
-                type: 'radar',
-                data: {
-                    labels: attributeLabels,
-                    datasets: [{
-                        data: attributeValues,
-                        backgroundColor: 'rgba(23, 192, 235, 0.4)',
-                        borderColor: '#0e7490',
-                        borderWidth: 1,
-                        pointBackgroundColor: '#0e7490',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#0e7490'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
-                            grid: { color: 'rgba(255, 255, 255, 0.2)' },
-                            pointLabels: {
-                                color: '#c9d1d9',
-                                font: { size: 8 }
-                            },
-                            ticks: {
-                                display: false,
-                                max: 100
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.dataset.label || '';
-                                    return `${context.label}: ${context.raw}`;
-                                }
-                            }
-                        }
-                    },
-                    elements: {
-                        line: {
-                            borderWidth: 2
-                        },
-                        point: {
-                            radius: 3
-                        }
+                            osc.type = 'sine';
+                            osc.frequency.value = 400;
+                            gain.gain.setValueAtTime(0.1, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                            osc.start(now);
+                            osc.stop(now + 0.1);
                     }
                 }
-            });
-            
-            charts[canvasId] = newChart;
-        }
-        
-        function toggleStarter(player) {
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-            const isStarter = userTeam.starters.some(s => s.id === player.id);
-
-            if (isStarter) {
-                userTeam.starters = userTeam.starters.filter(s => s.id !== player.id);
-            } else {
-                if (userTeam.starters.length < 5) {
-                    userTeam.starters.push(player);
-                } else {
-                    addSocialPost("alert", "Ya tienes 5 jugadores titulares. Elimina uno antes de añadir otro.", "⚠️");
-                }
             }
-        }
+            const sound = new SoundManager();
 
-        function renderParticipants() {
-            allTeamsContainer.innerHTML = '';
-        
-            gameState.teams.forEach(team => {
-                const teamCard = document.createElement('div');
-                teamCard.className = "p-6 bg-[#23262d] rounded-xl border border-[#30363d]";
-                
-                const teamTitleHTML = `<h3 class="text-xl font-bold mb-4 text-white">${team.emoji} ${team.name}</h3>`;
-                
-                const playersContainer = document.createElement('div');
-                playersContainer.className = "flex flex-wrap gap-4 justify-center";
-                
-                team.players.forEach(player => {
-                    const isStarter = team.starters.some(s => s.id === player.id);
-                    renderPlayerCard(player, playersContainer, isStarter, true);
-                });
-                
-                teamCard.innerHTML = teamTitleHTML;
-                teamCard.appendChild(playersContainer);
-                allTeamsContainer.appendChild(teamCard);
-            });
-            setTimeout(() => {
-                gameState.teams.forEach(team => {
-                    team.players.forEach(player => {
-                        renderRadarChart(player, true);
+            // --------------------------------------------------------------
+            // 2. Clases del juego (Player, Team, etc.)
+            // --------------------------------------------------------------
+            const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel"];
+            const lastNames = ["García", "Rodríguez", "López", "Martínez", "Pérez", "González", "Sánchez", "Romero"];
+            const nationalities = ["Argentina 🇦🇷","Brasil 🇧🇷","México 🇲🇽","España 🇪🇸","Chile 🇨🇱","Colombia 🇨🇴","Perú 🇵🇪"];
+            const playerEmojis = ["🥷","🧙","🏹","🗡️","🛡️","🤖","👹","👽","🦄","🐼","🐉","⚡️"];
+            const attributes = ["vision","reflexes","communication","tecnologia","teamwork","mood"];
+            
+            // Rarezas con probabilidad (acumulado)
+            const rarityLevels = [
+                { name: 'common', color: 'rarity-common', weight: 60, minStat: 30, maxStat: 70 },
+                { name: 'rare', color: 'rarity-rare', weight: 25, minStat: 50, maxStat: 80 },
+                { name: 'epic', color: 'rarity-epic', weight: 12, minStat: 65, maxStat: 90 },
+                { name: 'legendary', color: 'rarity-legendary', weight: 3, minStat: 80, maxStat: 100 }
+            ];
+
+            let playerIdCounter = 1000;
+
+            class Player {
+                constructor(rarity = null) {
+                    this.id = playerIdCounter++;
+                    this.name = `${firstNames[Math.floor(Math.random()*firstNames.length)]} ${lastNames[Math.floor(Math.random()*lastNames.length)]}`;
+                    this.emoji = playerEmojis[Math.floor(Math.random()*playerEmojis.length)];
+                    this.nationality = nationalities[Math.floor(Math.random()*nationalities.length)];
+                    
+                    // Asignar rareza
+                    if (!rarity) rarity = this.randomRarity();
+                    this.rarity = rarity.name;
+                    this.rarityColor = rarity.color;
+                    
+                    this.attributes = {};
+                    const baseMin = rarity.minStat;
+                    const baseMax = rarity.maxStat;
+                    attributes.forEach(attr => {
+                        this.attributes[attr] = Math.floor(Math.random() * (baseMax - baseMin + 1)) + baseMin;
                     });
-                });
-            }, 50);
-        }
-
-        function showLeagueEndNotification() {
-            updateTournamentStats();
-            const winner = gameState.bracket.gfHistory[0]?.winner || gameState.teams.sort((a,b) => b.wins - a.wins)[0];
-            showModal("¡Temporada Terminada!", `¡El campeón de la liga es ${winner.emoji} <strong>${winner.name}</strong>!`);
-            nextStepBtn.disabled = true;
-            nextStepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            newSeasonBtn.classList.remove('hidden');
-        }
-
-        function renderBracket() {
-            bracketContainer.innerHTML = '';
-            const sortedTeams = [...gameState.teams].sort((a, b) => {
-                if (b.wins !== a.wins) {
-                    return b.wins - a.wins;
                 }
-                return b.gamesWon - a.gamesWon;
-            });
-            const topFourTeams = sortedTeams.slice(0, 4);
-            const userTeamInBracket = topFourTeams.some(t => t.isUserTeam);
-            
-            if (gameState.bracket.phase === 'regular' && !userTeamInBracket) {
-                bracketContainer.innerHTML = `
-                    <p class="text-center text-lg text-gray-400">Tu equipo no clasificó para el bracket final.</p>
-                    <p class="text-center text-sm mt-2">Aquí están los 4 equipos clasificados:</p>
-                    <div class="flex justify-center flex-wrap gap-4 mt-4">
-                        ${topFourTeams.map(t => `<div class="p-3 bg-[#23262d] rounded-xl border border-[#30363d] text-center"><p class="text-xl">${t.emoji}</p><p class="text-sm font-semibold">${t.name}</p></div>`).join('')}
-                    </div>
-                `;
-                return;
+                randomRarity() {
+                    const r = Math.random() * 100;
+                    let acc = 0;
+                    for (let rar of rarityLevels) {
+                        acc += rar.weight;
+                        if (r < acc) return rar;
+                    }
+                    return rarityLevels[0];
+                }
             }
 
-            const renderMatch = (match) => {
-                if (!match || !match.team1 || !match.team2) return '';
-                const isWinner = match.winner && match.team1.key === match.winner.key;
-                const winnerClass = 'text-green-400 font-bold';
-                const loserClass = 'text-red-400 line-through';
-                
-                return `
-                    <div class="p-2 bg-[#1e232b] rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm ${isWinner ? winnerClass : loserClass}">${match.team1.emoji} ${match.team1.name}</span>
-                            <span class="text-sm text-gray-400">vs</span>
-                            <span class="text-sm ${!isWinner ? winnerClass : loserClass}">${match.team2.emoji} ${match.team2.name}</span>
-                        </div>
-                    </div>
-                `;
-            };
-
-            const renderRound = (title, matches) => {
-                return `
-                    <div class="p-4 rounded-xl border border-[#30363d] space-y-4 flex-1">
-                        <h3 class="font-bold text-lg text-center">${title}</h3>
-                        <div class="space-y-2">
-                            ${matches.length === 0 ? '<p class="text-center text-gray-400 text-sm">Próxima ronda...</p>' : matches.map(renderMatch).join('')}
-                        </div>
-                    </div>
-                `;
-            };
-            
-            let html = `<div class="flex flex-col md:flex-row gap-4">`;
-
-            html += `<div class="flex flex-col md:w-1/3 gap-4">
-                         ${renderRound("Ronda de Ganadores 1", gameState.bracket.wbHistory.slice(0, 2))}
-                         ${renderRound("Final de Ganadores", gameState.bracket.wbHistory.slice(2, 3))}
-                    </div>`;
-
-            html += `<div class="flex flex-col md:w-1/3 gap-4">
-                         ${renderRound("Ronda de Perdedores 1", gameState.bracket.lbHistory.slice(0, 1))}
-                         ${renderRound("Final de Perdedores", gameState.bracket.lbHistory.slice(1, 2))}
-                    </div>`;
-            
-            html += `<div class="flex flex-col md:w-1/3 gap-4">
-                         ${renderRound("Gran Final", gameState.bracket.gfHistory)}
-                    </div>`;
-
-            html += `</div>`;
-
-            bracketContainer.innerHTML = html;
-        }
-
-        function showBracketView() {
-            contentTabs.forEach(tab => tab.classList.add('hidden'));
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            document.getElementById('bracket-content').classList.remove('hidden');
-            bracketTabBtn.classList.remove('hidden');
-            bracketTabBtn.classList.add('active');
-        }
-
-        function addSocialPost(type, message, icon) {
-            const post = document.createElement('div');
-            post.className = 'social-post';
-            
-            let iconColor = 'text-gray-400';
-            if (type === 'announcement') iconColor = 'text-blue-400';
-            else if (type === 'match') iconColor = 'text-green-400';
-            else if (type === 'elimination') iconColor = 'text-red-400';
-            else if (type === 'achievement') iconColor = 'text-yellow-400';
-            else if (type === 'alert') iconColor = 'text-red-500';
-
-            post.innerHTML = `
-                <div class="flex items-center space-x-2 mb-2">
-                    <span class="text-xl ${iconColor}">${icon}</span>
-                    <span class="font-semibold text-white text-sm">MOBA News</span>
-                    <span class="text-xs text-gray-500 ml-auto">${new Date().toLocaleTimeString()}</span>
-                </div>
-                <p class="text-gray-300 text-sm">${message}</p>
-            `;
-            
-            gameLogContainer.prepend(post);
-            if (gameLogContainer.childElementCount > 50) {
-                gameLogContainer.removeChild(gameLogContainer.lastChild);
+            class Team {
+                constructor(name, emoji, isUser = false) {
+                    this.key = name.replace(/\s/g,'') + Date.now() + Math.random();
+                    this.name = name;
+                    this.emoji = emoji;
+                    this.isUserTeam = isUser;
+                    this.players = [];
+                    this.starters = [];
+                    this.wins = 0; this.losses = 0; this.gamesWon = 0; this.gamesLost = 0;
+                    this.bracketLosses = 0;
+                }
             }
-        }
-        
-        function renderUI() {
-            currentWeekSpan.textContent = gameState.currentWeek;
-            renderStandings();
-            renderMatchResults();
-            renderPlayerManagement();
-            renderParticipants();
-            renderBracket();
-        }
 
-        function startNewSeason() {
-            const userTeam = gameState.teams.find(t => t.isUserTeam);
-            const userStarters = [...userTeam.starters];
-            const userTeamName = userTeam.name;
-            const userTeamEmoji = userTeam.emoji;
-
-            gameState = {
+            // --------------------------------------------------------------
+            // 3. Estado global
+            // --------------------------------------------------------------
+            let gameState = {
                 teams: [],
                 schedule: [],
                 results: [],
                 currentWeek: 0,
-                season: gameState.season + 1,
-                bracket: {
-                    phase: 'regular',
-                    pendingMatches: [],
-                    wbHistory: [],
-                    lbHistory: [],
-                    gfHistory: [],
-                    winner: null
-                }
+                season: 1,
+                bracket: { phase: 'regular', pendingMatches: [], wbHistory: [], lbHistory: [], gfHistory: [], winner: null },
+                userCurrency: 500,
+                userCollection: [],        // todas las cartas del usuario (players)
+                userTeamObj: null,
+                tournamentStats: { first:0, second:0, third:0, total:0 },
+                userMatchHistory: []
             };
-            
-            generateTeamsAndPlayers();
-            generateSchedule();
-            
-            const newTeam = gameState.teams.find(t => t.isUserTeam);
-            newTeam.name = userTeamName;
-            newTeam.emoji = userTeamEmoji;
-            newTeam.starters = userStarters;
-            
-            const freeAgents = [];
-            for(let i = 0; i < 5; i++) {
-                freeAgents.push(createPlayer());
+
+            // --------------------------------------------------------------
+            // 4. Funciones de generación
+            // --------------------------------------------------------------
+            function generateAITeams(count = 5) {
+                const teamNames = [
+                    { name:"Dragones de Fuego", emoji:"🐉" }, { name:"Lobos de Hielo", emoji:"🐺" }, { name:"Titanes de Acero", emoji:"⚙️" },
+                    { name:"Sombras Eternas", emoji:"👥" }, { name:"Elite Dorada", emoji:"👑" }, { name:"Guardianes del Nexo", emoji:"🛡️" }
+                ];
+                for (let i=0; i<count; i++) {
+                    let tData = teamNames[i % teamNames.length];
+                    let team = new Team(tData.name + (i>2 ? " "+i : ""), tData.emoji, false);
+                    // crear 8-10 jugadores IA
+                    for (let j=0; j<10; j++) team.players.push(new Player(rarityLevels[Math.floor(Math.random()*3)])); // IA sin legendarias
+                    // starters aleatorios
+                    team.starters = team.players.slice(0,5);
+                    gameState.teams.push(team);
+                }
             }
 
-            newTeam.players = [...newTeam.starters, ...freeAgents];
-
-            addSocialPost("announcement", `¡Nueva temporada ${gameState.season} iniciada!`, "⚡");
-            nextStepBtn.textContent = "Simular Siguiente Jornada";
-            nextStepBtn.classList.remove('bg-[#eab308]', 'hover:bg-[#a16207]');
-            nextStepBtn.classList.add('bg-[#0e7490]', 'hover:bg-[#08617d]');
-            nextStepBtn.disabled = false;
-            nextStepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            newSeasonBtn.classList.add('hidden');
-
-            bracketTabBtn.classList.add('hidden');
-            
-            renderUI();
-            setActiveTab('log-content');
-        }
-
-        function initGame() {
-            generateTeamsAndPlayers();
-            generateSchedule();
-            
-            gameState.teams.forEach(team => {
-                team.starters = team.players.slice(0, 5);
-            });
-
-            addSocialPost("announcement", "¡Bienvenido al simulador de liga de MOBA!", "🎮");
-            addSocialPost("tip", "Selecciona a tus 5 jugadores titulares en la pestaña 'Gestión de Equipo' antes de simular la próxima jornada.", "💡");
-            
-            renderUI();
-            
-            nextStepBtn.addEventListener('click', simulateNextStep);
-            newSeasonBtn.addEventListener('click', () => {
-                showModal("Iniciar Nueva Temporada", "¿Estás seguro de que quieres iniciar una nueva temporada? Se reiniciarán las estadísticas de la liga, pero tu equipo y las estadísticas de torneos se mantendrán.");
-                closeModalBtn.addEventListener('click', () => {
-                    notificationModal.classList.add('hidden');
-                    startNewSeason();
-                }, { once: true });
-            });
-            
-            closeModalBtn.addEventListener('click', () => {
-                notificationModal.classList.add('hidden');
-            });
-
-            tabButtons.forEach(btn => {
-                btn.addEventListener('click', handleTabClick);
-            });
-            
-            updateTeamBtn.addEventListener('click', () => {
-                const userTeam = gameState.teams.find(t => t.isUserTeam);
-                const newName = teamNameInput.value.trim();
-                const newEmoji = teamEmojiInput.value.trim();
-                if (newName !== '') {
-                    userTeam.name = newName;
+            function createUserTeam() {
+                let team = new Team("Mis Leyendas", "🔥", true);
+                // regalamos 5 cartas iniciales (dos comunes, dos raras, una épica)
+                let startRarities = [rarityLevels[0], rarityLevels[0], rarityLevels[1], rarityLevels[1], rarityLevels[2]];
+                for (let r of startRarities) {
+                    let p = new Player(r);
+                    team.players.push(p);
+                    gameState.userCollection.push(p);
                 }
-                if (newEmoji !== '') {
-                    userTeam.emoji = newEmoji;
+                // 5 adicionales comunes para relleno
+                for (let i=0; i<5; i++) {
+                    let p = new Player(rarityLevels[0]);
+                    team.players.push(p);
+                    gameState.userCollection.push(p);
                 }
-                renderUI();
-                addSocialPost("update", `Tu equipo ha sido renombrado a ${userTeam.emoji} ${userTeam.name}`, "📝");
-            });
-        }
-        
-        window.onload = initGame;
+                team.starters = team.players.slice(0,5); // los primeros 5 titulares
+                gameState.teams.push(team);
+                gameState.userTeamObj = team;
+            }
+
+            function generateSchedule() {
+                const numTeams = gameState.teams.length;
+                let pairings = [];
+                for (let i=0; i<numTeams; i++) {
+                    for (let j=i+1; j<numTeams; j++) pairings.push([i, j]);
+                }
+                pairings.sort(() => Math.random() - 0.5);
+                const matchesPerWeek = Math.floor(numTeams/2);
+                const totalWeeks = pairings.length / matchesPerWeek;
+                let weekly = [];
+                for (let w=0; w<totalWeeks; w++) {
+                    weekly.push(pairings.splice(0, matchesPerWeek));
+                }
+                gameState.schedule = weekly;
+            }
+
+            // --------------------------------------------------------------
+            // 5. Lógica de simulación de partidos
+            // --------------------------------------------------------------
+            function calculateTeamPower(team) {
+                return team.starters.reduce((sum, p) => sum + Object.values(p.attributes).reduce((a,b)=>a+b,0), 0);
+            }
+
+            function simulateGame(team1, team2) {
+                const p1 = calculateTeamPower(team1);
+                const p2 = calculateTeamPower(team2);
+                const diff = Math.abs(p1-p2);
+                const upsetChance = Math.max(0, 0.4 - diff/800); // probabilidad de que el débil gane una partida
+                const rand = Math.random();
+                if (p1 > p2) return (rand < upsetChance) ? team2.key : team1.key;
+                else return (rand < upsetChance) ? team1.key : team2.key;
+            }
+
+            function simulateMatch(team1, team2, isBracket = false) {
+                if (!team1.starters.length) team1.starters = team1.players.slice(0,5);
+                if (!team2.starters.length) team2.starters = team2.players.slice(0,5);
+                let g1=0, g2=0;
+                for (let i=0; i<3; i++) {
+                    if (g1===2 || g2===2) break;
+                    let winnerKey = simulateGame(team1, team2);
+                    if (winnerKey === team1.key) g1++; else g2++;
+                }
+                const winnerKey = g1>g2 ? team1.key : team2.key;
+                const loserKey = winnerKey===team1.key ? team2.key : team1.key;
+                const winnerTeam = gameState.teams.find(t=>t.key===winnerKey);
+                const loserTeam = gameState.teams.find(t=>t.key===loserKey);
+
+                // Actualizar estadísticas liga
+                if (!isBracket) {
+                    winnerTeam.wins++; winnerTeam.gamesWon += Math.max(g1,g2);
+                    loserTeam.losses++; loserTeam.gamesLost += Math.max(g1,g2);
+                    loserTeam.gamesWon += Math.min(g1,g2);
+                    winnerTeam.gamesLost += Math.min(g1,g2);
+                }
+                return { winnerKey, loserKey, gamesWon1:g1, gamesWon2:g2, winnerTeam, loserTeam };
+            }
+
+            // --------------------------------------------------------------
+            // 6. Interfaz y renderizado
+            // --------------------------------------------------------------
+            const ui = {
+                // Referencias
+                logDiv: document.getElementById('game-log'),
+                standingsDiv: document.getElementById('league-standings'),
+                matchResults: document.getElementById('match-results-container'),
+                currentWeekSpan: document.getElementById('current-week'),
+                bracketDiv: document.getElementById('bracket-container'),
+                collectionGrid: document.getElementById('collection-grid'),
+                starterDiv: document.getElementById('starter-players'),
+                availableDiv: document.getElementById('available-players'),
+                starterCount: document.getElementById('starter-count'),
+                currencySpan: document.getElementById('currency-amount'),
+                allTeamsContainer: document.getElementById('all-teams-container'),
+                packResult: document.getElementById('pack-result'),
+                packModal: document.getElementById('pack-modal'),
+                packModalCards: document.getElementById('pack-modal-cards'),
+                teamNameInput: document.getElementById('team-name-input'),
+                teamEmojiInput: document.getElementById('team-emoji-input'),
+                // ... añadir más
+            };
+
+            function addSocialPost(message, icon = '📌', type = 'info') {
+                const post = document.createElement('div');
+                post.className = 'toast-msg flex items-center gap-3';
+                post.innerHTML = `<span class="text-2xl">${icon}</span><span>${message}</span>`;
+                ui.logDiv.prepend(post);
+                if (ui.logDiv.children.length > 20) ui.logDiv.lastElementChild.remove();
+            }
+
+            function renderCurrency() {
+                ui.currencySpan.textContent = gameState.userCurrency;
+            }
+
+            // Render colección con filtro
+            function renderCollection() {
+                const filter = document.getElementById('rarity-filter')?.value || 'all';
+                const filtered = gameState.userCollection.filter(p => filter==='all' || p.rarity === filter);
+                ui.collectionGrid.innerHTML = '';
+                filtered.forEach(p => renderPlayerCard(p, ui.collectionGrid, false, true));
+                document.getElementById('collection-count').textContent = gameState.userCollection.length;
+                // mini radar charts after
+                setTimeout(() => filtered.forEach(p => renderRadarChart(p, `coll-${p.id}`)), 30);
+            }
+
+            // Carta genérica
+            function renderPlayerCard(player, container, isStarter = false, collectionView = false) {
+                const card = document.createElement('div');
+                card.className = `player-card ${player.rarityColor} flex flex-col items-center text-center`;
+                card.dataset.playerId = player.id;
+                const chartId = `chart-${player.id}-${Math.random().toString(36)}`;
+                card.innerHTML = `
+                    <span class="text-4xl mb-1">${player.emoji}</span>
+                    <span class="font-bold text-sm leading-tight">${player.name}</span>
+                    <span class="text-xs text-gray-400">${player.nationality}</span>
+                    <div class="w-full h-20 mt-1"><canvas id="${chartId}" class="w-full h-full"></canvas></div>
+                    <span class="mt-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 uppercase">${player.rarity}</span>
+                `;
+                container.appendChild(card);
+                // Evento para seleccionar titular si estamos en equipo
+                if (!collectionView && container.id !== 'collection-grid') {
+                    card.addEventListener('click', () => toggleStarter(player));
+                }
+                // guardar chart
+                setTimeout(() => renderRadarChart(player, chartId), 20);
+            }
+
+            function renderRadarChart(player, canvasId) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+                new Chart(canvas, {
+                    type: 'radar',
+                    data: {
+                        labels: attributes.map(a=>a[0].toUpperCase()+a.slice(1)),
+                        datasets: [{
+                            data: attributes.map(a => player.attributes[a]),
+                            backgroundColor: 'rgba(251,191,36,0.2)',
+                            borderColor: '#fbbf24',
+                            borderWidth: 1,
+                            pointBackgroundColor: '#fbbf24',
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { r: { ticks: { display: false }, max: 100 } },
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                    }
+                });
+            }
+
+            function toggleStarter(player) {
+                const user = gameState.userTeamObj;
+                const idx = user.starters.findIndex(s => s.id === player.id);
+                if (idx !== -1) {
+                    user.starters.splice(idx, 1);
+                    sound.play('click');
+                } else {
+                    if (user.starters.length >= 5) {
+                        addSocialPost('No puedes tener más de 5 titulares', '⚠️', 'alert');
+                        return;
+                    }
+                    user.starters.push(player);
+                    sound.play('click');
+                }
+                renderTeamManagement();
+            }
+
+            function renderTeamManagement() {
+                const user = gameState.userTeamObj;
+                ui.starterDiv.innerHTML = '';
+                ui.availableDiv.innerHTML = '';
+                ui.starterCount.textContent = `${user.starters.length}/5`;
+                const available = user.players.filter(p => !user.starters.includes(p));
+                user.starters.forEach(p => renderPlayerCard(p, ui.starterDiv, true, false));
+                available.forEach(p => renderPlayerCard(p, ui.availableDiv, false, false));
+                // actualizar nombre
+                ui.teamNameInput.value = user.name;
+                ui.teamEmojiInput.value = user.emoji;
+            }
+
+            function renderStandings() {
+                const sorted = [...gameState.teams].sort((a,b)=> b.wins - a.wins || b.gamesWon - a.gamesWon);
+                let html = `<table class="w-full text-sm"><thead class="bg-slate-800"><tr><th>#</th><th>Equipo</th><th>V</th><th>D</th><th>JG</th><th>JP</th></tr></thead><tbody>`;
+                sorted.forEach((t,i) => {
+                    html += `<tr class="border-b border-slate-700 ${t.isUserTeam ? 'bg-amber-900/30' : ''}"><td class="p-2">${i+1}</td><td>${t.emoji} ${t.name}</td><td>${t.wins}</td><td>${t.losses}</td><td>${t.gamesWon}</td><td>${t.gamesLost}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                ui.standingsDiv.innerHTML = html;
+            }
+
+            function renderMatchResults() {
+                if (gameState.currentWeek < gameState.schedule.length) {
+                    const weekMatches = gameState.schedule[gameState.currentWeek];
+                    ui.matchResults.innerHTML = weekMatches.map(([i,j]) => {
+                        const t1 = gameState.teams[i], t2 = gameState.teams[j];
+                        return `<div class="bg-slate-800 p-3 rounded-xl"><div class="flex justify-between"><span>${t1.emoji} ${t1.name}</span><span>vs</span><span>${t2.emoji} ${t2.name}</span></div></div>`;
+                    }).join('');
+                } else ui.matchResults.innerHTML = '<p class="text-center">Temporada regular finalizada</p>';
+                ui.currentWeekSpan.textContent = gameState.currentWeek;
+            }
+
+            function renderBracket() {
+                if (gameState.bracket.phase === 'regular') {
+                    ui.bracketDiv.innerHTML = '<p class="text-gray-400">El bracket se mostrará al finalizar la temporada regular.</p>';
+                    return;
+                }
+                let html = '<div class="grid md:grid-cols-3 gap-4">';
+                ['wbHistory','lbHistory','gfHistory'].forEach((hist,i) => {
+                    let title = i===0 ? 'Ganadores' : (i===1 ? 'Perdedores' : 'Gran Final');
+                    html += `<div><h3 class="font-bold">${title}</h3>`;
+                    gameState.bracket[hist].forEach(m => {
+                        if (m.winnerTeam)
+                            html += `<div class="bg-slate-800 p-2 rounded mb-2">${m.winnerTeam.emoji} vence a ${m.loserTeam?.emoji} (${m.gamesWon1}-${m.gamesWon2})</div>`;
+                    });
+                    html += '</div>';
+                });
+                html += '</div>';
+                ui.bracketDiv.innerHTML = html;
+            }
+
+            function renderAllTeams() {
+                ui.allTeamsContainer.innerHTML = gameState.teams.map(t => `
+                    <div class="bg-slate-800 p-4 rounded-xl">
+                        <h3 class="text-xl font-bold mb-2">${t.emoji} ${t.name}</h3>
+                        <div class="flex flex-wrap gap-2">${t.players.slice(0,5).map(p => `<span class="bg-slate-700 px-2 py-1 rounded text-xs">${p.emoji} ${p.name}</span>`).join('')}</div>
+                    </div>`).join('');
+            }
+
+            function renderAll() {
+                renderCurrency();
+                renderStandings();
+                renderMatchResults();
+                renderBracket();
+                renderCollection();
+                renderTeamManagement();
+                renderAllTeams();
+            }
+
+            // --------------------------------------------------------------
+            // 7. Apertura de sobres
+            // --------------------------------------------------------------
+            function openPack(isPremium = false) {
+                const cost = isPremium ? 250 : 100;
+                if (gameState.userCurrency < cost) {
+                    addSocialPost('No tienes suficientes 🪙', '😭', 'error'); return;
+                }
+                gameState.userCurrency -= cost;
+                sound.play('packOpen');
+                // generar cartas
+                let newCards = [];
+                const cardCount = isPremium ? 5 : 3;
+                for (let i=0; i<cardCount; i++) {
+                    let rar;
+                    if (isPremium) {
+                        const r = Math.random()*100;
+                        if (r<50) rar = rarityLevels[0];
+                        else if (r<75) rar = rarityLevels[1];
+                        else if (r<93) rar = rarityLevels[2];
+                        else rar = rarityLevels[3];
+                    } else {
+                        const r = Math.random()*100;
+                        if (r<70) rar = rarityLevels[0];
+                        else if (r<92) rar = rarityLevels[1];
+                        else rar = rarityLevels[2];
+                    }
+                    let p = new Player(rar);
+                    gameState.userCollection.push(p);
+                    gameState.userTeamObj.players.push(p); // también en plantilla
+                    newCards.push(p);
+                    if (rar.name === 'legendary') sound.play('rare');
+                }
+                renderAll();
+                // mostrar modal
+                ui.packModalCards.innerHTML = '';
+                newCards.forEach(p => {
+                    let div = document.createElement('div');
+                    div.className = `player-card ${p.rarityColor} p-2`;
+                    div.innerHTML = `<span class="text-5xl">${p.emoji}</span><span class="font-bold text-sm">${p.name}</span><span class="text-xs uppercase">${p.rarity}</span>`;
+                    ui.packModalCards.appendChild(div);
+                });
+                ui.packModal.classList.remove('hidden');
+                addSocialPost(`¡Has abierto un sobre y obtenido ${newCards.length} cartas!`, '🎁');
+            }
+
+            // --------------------------------------------------------------
+            // 8. Simulación de siguiente paso
+            // --------------------------------------------------------------
+            function nextStep() {
+                if (gameState.bracket.winner) { alert('Temporada terminada, inicia una nueva'); return; }
+                const user = gameState.userTeamObj;
+                if (gameState.bracket.phase === 'regular') {
+                    if (gameState.currentWeek >= gameState.schedule.length) {
+                        // pasar a bracket
+                        const sorted = [...gameState.teams].sort((a,b)=> b.wins - a.wins || b.gamesWon - a.gamesWon);
+                        const top4 = sorted.slice(0,4);
+                        gameState.bracket.phase = 'wb1';
+                        gameState.bracket.pendingMatches = [
+                            {team1: top4[0], team2: top4[3]},
+                            {team1: top4[1], team2: top4[2]}
+                        ];
+                        document.getElementById('next-step-btn').textContent = '▶️ Siguiente ronda playoff';
+                        renderAll(); return;
+                    }
+                    // simular jornada
+                    const weekMatches = gameState.schedule[gameState.currentWeek];
+                    weekMatches.forEach(([i,j]) => {
+                        const t1 = gameState.teams[i], t2 = gameState.teams[j];
+                        const result = simulateMatch(t1, t2);
+                        gameState.results.push(result);
+                        // si participa usuario, dar monedas y registrar
+                        if (t1.isUserTeam || t2.isUserTeam) {
+                            gameState.userCurrency += 25; // participación
+                            let op = t1.isUserTeam ? t2 : t1;
+                            gameState.userMatchHistory.push({ opponent: op.name, result: result.winnerTeam.isUserTeam ? 'win' : 'loss' });
+                        }
+                    });
+                    gameState.currentWeek++;
+                    addSocialPost(`Jornada ${gameState.currentWeek} completada`, '⚔️');
+                    renderAll();
+                } else {
+                    // lógica playoffs (simplificada, pero funcional)
+                    if (gameState.bracket.pendingMatches.length) {
+                        let match = gameState.bracket.pendingMatches.shift();
+                        let res = simulateMatch(match.team1, match.team2, true);
+                        gameState.bracket.wbHistory.push(res);
+                        if (gameState.bracket.phase === 'wb1') {
+                            // mover perdedores a losers bracket
+                            // (implementación reducida para demo)
+                        }
+                        // dar monedas extra al usuario si gana
+                        if (res.winnerTeam.isUserTeam) gameState.userCurrency += 75;
+                        addSocialPost(`Playoff: ${res.winnerTeam.emoji} gana`, '🏆');
+                    } else {
+                        // final
+                        gameState.bracket.winner = gameState.teams.find(t=>t.isUserTeam) || gameState.teams[0];
+                        addSocialPost(`¡${gameState.bracket.winner.emoji} Campeón!`, '👑');
+                        document.getElementById('next-step-btn').disabled = true;
+                        document.getElementById('new-season-btn').classList.remove('hidden');
+                    }
+                    renderAll();
+                }
+                renderCurrency();
+            }
+
+            // --------------------------------------------------------------
+            // 9. Inicialización
+            // --------------------------------------------------------------
+            function initGame() {
+                // Crear equipos IA y usuario
+                generateAITeams(5);
+                createUserTeam();
+                generateSchedule();
+                renderAll();
+
+                // Eventos
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+                        document.getElementById(btn.dataset.tab + '-panel').classList.remove('hidden');
+                    });
+                });
+
+                document.getElementById('next-step-btn').addEventListener('click', nextStep);
+                document.getElementById('new-season-btn').addEventListener('click', () => {
+                    // reset básico (manteniendo colección y monedas)
+                    gameState.teams = gameState.teams.filter(t => t.isUserTeam); // solo el user
+                    gameState.teams[0].wins=0; gameState.teams[0].losses=0; gameState.teams[0].gamesWon=0; gameState.teams[0].gamesLost=0;
+                    generateAITeams(5);
+                    generateSchedule();
+                    gameState.currentWeek = 0;
+                    gameState.bracket = { phase: 'regular', pendingMatches: [], wbHistory: [], lbHistory: [], gfHistory: [], winner: null };
+                    document.getElementById('next-step-btn').disabled = false;
+                    document.getElementById('next-step-btn').textContent = '⏩ Siguiente jornada';
+                    document.getElementById('new-season-btn').classList.add('hidden');
+                    addSocialPost('¡Nueva temporada comienza!', '🌟');
+                    renderAll();
+                });
+
+                document.getElementById('open-basic-pack').addEventListener('click', () => openPack(false));
+                document.getElementById('open-premium-pack').addEventListener('click', () => openPack(true));
+                document.getElementById('close-pack-modal').addEventListener('click', () => {
+                    ui.packModal.classList.add('hidden');
+                });
+
+                document.getElementById('update-team-btn').addEventListener('click', () => {
+                    let newName = ui.teamNameInput.value.trim();
+                    let newEmoji = ui.teamEmojiInput.value.trim();
+                    if (newName) gameState.userTeamObj.name = newName;
+                    if (newEmoji) gameState.userTeamObj.emoji = newEmoji;
+                    renderAll();
+                });
+
+                document.getElementById('toggle-sound').addEventListener('click', (e) => {
+                    const muted = sound.toggle();
+                    e.target.textContent = muted ? '🔇' : '🔊';
+                });
+
+                document.getElementById('rarity-filter')?.addEventListener('change', renderCollection);
+            }
+
+            window.onload = initGame;
+        })();
     </script>
 </body>
 </html>
