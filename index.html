@@ -1,831 +1,1324 @@
+<!--
+/*
+ * =============================================================================
+ * MOBA Manager + Mizu Fractal Engine - Prototipo 3 v2 (JUGABLE)
+ * Copyright (C) 2026 Mooxe / Mizu Legends Studio
+ * AGPL-3.0 License - Offline-First - SmartTV Ready
+ * =============================================================================
+ * CAMBIOS CLAVE vs v1:
+ * • Dashboard: Event feed + acciones que realmente funcionan
+ * • Team: Click para titulares + stats visibles + tácticas aplicadas
+ * • Collection: Filtros + radar SVG + detalles al clicar
+ * • Packs: Animación de apertura + rareza visual + recompensas
+ * • Simulator: Partidos reales con resultados + recompensas + log
+ * • League: Tabla de posiciones que se actualiza tras cada jornada
+ * • Persistencia: Todo se guarda en localStorage::mizu
+ * • Mizu: Navegación fractal + foco + audio + temas (base intacta)
+ * =============================================================================
+ */
+-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy MOBA · Cartas Coleccionables</title>
-    <!-- Tailwind vía script (inyecta estilos, no es hoja de estilo) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js para los gráficos radar -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Fuente y estilos personalizados */
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(145deg, #0a0f1a 0%, #141b2b 100%);
-            color: #e2e8f0;
-            min-height: 100vh;
-        }
-        /* Scroll elegante */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 8px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 8px; }
-        
-        /* Pestañas activas */
-        .tab-btn.active {
-            background: #2d3b4f;
-            color: white;
-            border-bottom: 3px solid #fbbf24;
-            box-shadow: 0 -2px 10px rgba(251, 191, 36, 0.2);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>MOBA Manager · Mizu Fractal Engine</title>
+  <style>
+    /* ===== MIZU CORE (v2.3.0 - SIN CAMBIOS) ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      transition: background 0.2s, color 0.2s;
+      font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
+      height: 100vh; width: 100vw; overflow: hidden;
+      background: var(--bg-dark, #06121c); color: var(--text-light, #eef4ff);
+    }
+    body[data-theme="esports"] {
+      --hex-gold: #f0b34b; --hex-blue: #2ad4c4; --bg-dark: #06121c;
+      --glass: rgba(255,255,255,0.05); --text-light: #eef4ff;
+      --card-bg: radial-gradient(ellipse at 50% 30%, rgba(42,212,196,0.12), #071a24);
+      --border-glow: rgba(240,179,75,0.4);
+    }
+    body[data-theme="neon"] {
+      --hex-gold: #ff3d6c; --hex-blue: #0afff0; --bg-dark: #0a0a1f;
+      --glass: rgba(10,255,240,0.05); --text-light: #f0f0ff;
+      --card-bg: radial-gradient(ellipse at 50% 30%, rgba(255,61,108,0.15), #04041a);
+      --border-glow: #ff3d6c80;
+    }
+    body[data-theme="retro"] {
+      --hex-gold: #bfff40; --hex-blue: #3eff9e; --bg-dark: #142010;
+      --glass: rgba(63,255,158,0.05); --text-light: #d4ffb0;
+      --card-bg: radial-gradient(ellipse at 50% 30%, rgba(191,255,64,0.1), #0a1a0a);
+      --border-glow: #bfff4060;
+    }
+    body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
+      animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+    }
+    .hud-nav {
+      position: fixed; top: 0; left: 0; width: 100%;
+      padding: 12px 20px; background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(16px); z-index: 1100;
+      display: flex; gap: 10px; overflow-x: auto; white-space: nowrap;
+      border-bottom: 1px solid var(--border-glow);
+    }
+    .crumb {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; background: rgba(0,0,0,0.6);
+      border: 1px solid var(--border-glow); padding: 5px 14px;
+      border-radius: 40px; color: var(--hex-gold); cursor: pointer;
+      transition: 0.2s; outline: none;
+    }
+    .crumb:focus-visible {
+      outline: 2px solid var(--hex-blue); background: var(--hex-blue);
+      color: var(--bg-dark); transform: scale(1.02);
+    }
+    #stage {
+      width: 100vw; height: 100vh; display: flex;
+      flex-direction: column; overflow-y: auto; scroll-behavior: smooth;
+    }
+    .node {
+      flex: 0 0 auto; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      background: var(--card-bg); border-bottom: 1px solid var(--border-glow);
+      cursor: pointer; outline: none; padding: 1.8rem;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .node:focus-visible {
+      outline: 3px solid var(--hex-blue);
+      background: rgba(42,212,196,0.15); transform: scale(1.01);
+    }
+    @media (orientation: landscape) {
+      #stage { scroll-snap-type: y mandatory; }
+      .node { min-height: 100vh; scroll-snap-align: start; padding: 2rem 3rem; }
+    }
+    @media (orientation: portrait) {
+      .node { min-height: 33vh; padding: 1rem; }
+      .node h2 { font-size: 1.4rem !important; }
+    }
+    .node-tag {
+      font-size: 0.7rem; color: var(--hex-blue); text-transform: uppercase;
+      letter-spacing: 3px; background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px); padding: 4px 14px;
+      border-radius: 60px; display: inline-block; margin-bottom: 12px;
+    }
+    .node h2 {
+      font-size: 2.5rem; font-weight: 800; letter-spacing: 3px;
+      background: linear-gradient(135deg, #fff, var(--hex-gold));
+      background-clip: text; -webkit-background-clip: text;
+      color: transparent; margin: 16px 0; max-width: 90vw;
+    }
+    .node-detail {
+      max-width: 620px; font-size: 0.95rem; line-height: 1.5;
+      background: rgba(0,0,0,0.5); padding: 12px 20px;
+      border-radius: 40px; border: 0.5px solid var(--border-glow);
+      margin-top: 14px; white-space: pre-line;
+    }
+    .zoom-forward {
+      transform: scale(0.94) translateY(18px); opacity: 0;
+      filter: blur(10px); transition: all 0.35s cubic-bezier(0.2,0.9,0.4,1.1);
+    }
+    .spawn-in {
+      animation: smoothPop 0.45s cubic-bezier(0.15,0.85,0.3,1.05) forwards;
+    }
+    @keyframes smoothPop {
+      0% { opacity:0; transform:translateY(24px) scale(0.96); filter:blur(12px); }
+      100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+    }
+    .floating-buttons {
+      position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+      display: flex; gap: 12px; flex-direction: column; align-items: flex-end;
+    }
+    .float-btn {
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
+      border: 1px solid var(--hex-gold); border-radius: 60px;
+      padding: 10px 20px; font-weight: bold; color: var(--hex-gold);
+      cursor: pointer; font-size: 0.85rem; display: flex;
+      align-items: center; gap: 8px; transition: 0.2s;
+      font-family: monospace; outline: none;
+    }
+    .float-btn:focus-visible {
+      outline: 3px solid var(--hex-blue); transform: scale(1.05);
+      background: var(--hex-blue); color: var(--bg-dark);
+    }
+    .modal-overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3000; visibility: hidden; opacity: 0; transition: 0.2s;
+    }
+    .modal-overlay.active { visibility: visible; opacity: 1; }
+    .modal-card {
+      background: var(--bg-dark); border: 1px solid var(--hex-gold);
+      border-radius: 32px; max-width: 420px; width: 85%;
+      padding: 28px; text-align: center;
+    }
+    .modal-card button {
+      background: transparent; border: 1px solid var(--hex-blue);
+      padding: 8px 20px; border-radius: 40px; color: var(--hex-blue);
+      cursor: pointer; margin-top: 16px; font-weight: bold; transition: 0.2s;
+    }
+    .modal-card button:focus-visible {
+      outline: 2px solid var(--hex-gold); background: var(--hex-blue);
+      color: var(--bg-dark);
+    }
 
-        /* Efecto carta coleccionable */
-        .player-card {
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 1px solid #334155;
-            border-radius: 1rem;
-            box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 215, 0, 0.2) inset;
-            transition: transform 0.15s ease, box-shadow 0.2s;
-            cursor: pointer;
-            width: 160px;
-            padding: 0.75rem 0.5rem;
-        }
-        .player-card:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 20px 25px -8px black, 0 0 0 2px #fbbf24 inset;
-        }
-        /* Rarezas */
-        .rarity-common { border-top: 4px solid #94a3b8; }
-        .rarity-rare { border-top: 4px solid #3b82f6; }
-        .rarity-epic { border-top: 4px solid #a855f7; }
-        .rarity-legendary { border-top: 4px solid #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+    /* ===== MOBA GAMEPLAY STYLES [data-page] ===== */
+    /* Dashboard - Event Feed + Quick Actions */
+    [data-page="dashboard"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="dashboard"] .dashboard-header {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 90vw; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+    }
+    [data-page="dashboard"] .resource-bar {
+      display: flex; gap: 12px; background: rgba(0,0,0,0.3);
+      padding: 8px 16px; border-radius: 12px; font-size: 0.9rem;
+    }
+    [data-page="dashboard"] .resource { display: flex; align-items: center; gap: 4px; }
+    [data-page="dashboard"] .quick-actions {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      width: 100%; max-width: 90vw; margin: 16px 0;
+    }
+    [data-page="dashboard"] .action-btn {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border-glow);
+      border-radius: 16px; padding: 20px 12px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      transition: 0.2s; outline: none; min-height: 100px; justify-content: center;
+    }
+    [data-page="dashboard"] .action-btn:focus-visible {
+      outline: 2px solid var(--hex-blue); background: rgba(42,212,196,0.1);
+    }
+    [data-page="dashboard"] .action-btn:hover { transform: translateY(-2px); }
+    [data-page="dashboard"] .action-btn .icon { font-size: 2rem; }
+    [data-page="dashboard"] .action-btn.priority { border-color: var(--hex-gold); }
+    [data-page="dashboard"] .event-feed {
+      width: 100%; max-width: 90vw; background: rgba(0,0,0,0.3);
+      border-radius: 16px; padding: 12px; max-height: 200px; overflow-y: auto;
+      text-align: left; font-size: 0.85rem; margin-top: 12px;
+    }
+    [data-page="dashboard"] .event {
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    [data-page="dashboard"] .event:last-child { border-bottom: none; }
+    [data-page="dashboard"] .event-icon { font-size: 1.2rem; }
+    [data-page="dashboard"] .event-time { color: var(--hex-blue); font-size: 0.75rem; margin-left: auto; }
 
-        /* Animación de sobre */
-        .pack-shake {
-            animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-        @keyframes shake {
-            10%, 90% { transform: translateX(-1px) rotate(-1deg); }
-            20%, 80% { transform: translateX(6px) rotate(2deg); }
-            30%, 50%, 70% { transform: translateX(-8px) rotate(-3deg); }
-            40%, 60% { transform: translateX(8px) rotate(3deg); }
-        }
+    /* Team Management */
+    [data-page="team"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; overflow-y: auto; }
+    [data-page="team"] .team-header {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 90vw; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+    }
+    [data-page="team"] .section {
+      width: 100%; max-width: 90vw; margin: 12px 0;
+      background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
+    }
+    [data-page="team"] .section-title {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    [data-page="team"] .players-row {
+      display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+    }
+    [data-page="team"] .player-card {
+      min-width: 110px; background: linear-gradient(145deg, #1e293b, #0f172a);
+      border-radius: 12px; padding: 12px 8px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      transition: 0.15s; outline: none; border: 2px solid transparent;
+      scroll-snap-align: start;
+    }
+    [data-page="team"] .player-card:focus-visible {
+      outline: 2px solid var(--hex-blue); transform: scale(1.03);
+    }
+    [data-page="team"] .player-card.starter { border-color: var(--hex-gold); background: rgba(240,179,75,0.1); }
+    [data-page="team"] .player-card.rarity-common { border-top: 3px solid #94a3b8; }
+    [data-page="team"] .player-card.rarity-rare { border-top: 3px solid #3b82f6; }
+    [data-page="team"] .player-card.rarity-epic { border-top: 3px solid #a855f7; }
+    [data-page="team"] .player-card.rarity-legendary {
+      border-top: 3px solid #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);
+    }
+    [data-page="team"] .player-emoji { font-size: 1.8rem; margin-bottom: 4px; }
+    [data-page="team"] .player-name {
+      font-size: 0.75rem; font-weight: 600; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    }
+    [data-page="team"] .player-stats {
+      font-size: 0.65rem; color: var(--hex-blue); margin: 4px 0;
+    }
+    [data-page="team"] .player-rarity {
+      font-size: 0.6rem; text-transform: uppercase; padding: 2px 6px;
+      border-radius: 12px; background: rgba(0,0,0,0.4);
+    }
+    [data-page="team"] .tactics-bar {
+      display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap;
+    }
+    [data-page="team"] .tactic-btn {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border-glow);
+      border-radius: 8px; padding: 6px 12px; font-size: 0.8rem;
+      cursor: pointer; transition: 0.2s;
+    }
+    [data-page="team"] .tactic-btn.active {
+      background: var(--hex-blue); color: var(--bg-dark); border-color: var(--hex-blue);
+    }
+    [data-page="team"] .team-actions {
+      display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+    }
+    [data-page="team"] .team-actions input {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border-glow);
+      border-radius: 8px; padding: 8px 12px; color: var(--text-light);
+      min-width: 140px;
+    }
+    [data-page="team"] .btn-primary {
+      background: var(--hex-gold); color: var(--bg-dark); border: none;
+      border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer;
+    }
 
-        /* Destello al abrir carta */
-        .card-reveal {
-            animation: glowPulse 1s ease-out;
-        }
-        @keyframes glowPulse {
-            0% { filter: brightness(1); }
-            30% { filter: brightness(1.5) drop-shadow(0 0 8px gold); }
-            100% { filter: brightness(1); }
-        }
+    /* Collection */
+    [data-page="collection"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="collection"] .collection-header {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 90vw; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+    }
+    [data-page="collection"] .filter-bar {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    [data-page="collection"] .filter-btn {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border-glow);
+      border-radius: 20px; padding: 4px 12px; font-size: 0.75rem;
+      cursor: pointer; transition: 0.2s;
+    }
+    [data-page="collection"] .filter-btn.active {
+      background: var(--hex-blue); color: var(--bg-dark);
+    }
+    [data-page="collection"] .collection-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 12px; width: 100%; max-width: 90vw; justify-items: center;
+    }
+    [data-page="collection"] .radar-mini {
+      width: 100%; height: 60px; margin: 4px 0;
+    }
 
-        /* Notificaciones tipo candy */
-        .toast-msg {
-            background: #2a3a4e;
-            border-left: 6px solid #fbbf24;
-            border-radius: 12px;
-            padding: 0.75rem 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            color: white;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            backdrop-filter: blur(4px);
-        }
-    </style>
+    /* Packs */
+    [data-page="packs"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="packs"] .packs-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px; width: 100%; max-width: 90vw; margin: 16px 0;
+    }
+    [data-page="packs"] .pack-card {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border-radius: 20px; padding: 20px; text-align: center;
+      border: 2px solid var(--border-glow); cursor: pointer;
+      transition: 0.2s; outline: none;
+    }
+    [data-page="packs"] .pack-card:focus-visible {
+      outline: 2px solid var(--hex-blue); transform: scale(1.02);
+    }
+    [data-page="packs"] .pack-card:hover { transform: translateY(-4px); }
+    [data-page="packs"] .pack-card.premium {
+      border-color: #a855f7; box-shadow: 0 0 12px rgba(168,85,247,0.3);
+    }
+    [data-page="packs"] .pack-icon { font-size: 3rem; margin-bottom: 8px; }
+    [data-page="packs"] .pack-name { font-size: 1.1rem; font-weight: 700; }
+    [data-page="packs"] .pack-price { color: var(--hex-gold); font-size: 1.2rem; font-weight: 700; margin: 4px 0; }
+    [data-page="packs"] .pack-desc { font-size: 0.75rem; color: var(--hex-blue); margin: 8px 0; }
+    [data-page="packs"] .open-btn {
+      background: var(--hex-blue); color: var(--bg-dark); border: none;
+      border-radius: 12px; padding: 10px 20px; font-weight: 600;
+      cursor: pointer; margin-top: 12px; width: 100%;
+    }
+    [data-page="packs"] .open-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    [data-page="packs"] .pack-result {
+      margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    }
+    [data-page="packs"] .new-card {
+      animation: cardReveal 0.4s ease-out;
+    }
+    @keyframes cardReveal {
+      0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Simulator */
+    [data-page="simulator"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="simulator"] .match-arena {
+      width: 100%; max-width: 90vw; background: rgba(0,0,0,0.3);
+      border-radius: 16px; padding: 20px; margin: 12px 0;
+    }
+    [data-page="simulator"] .teams-display {
+      display: flex; justify-content: space-around; align-items: center;
+      margin: 16px 0; flex-wrap: wrap; gap: 12px;
+    }
+    [data-page="simulator"] .team-display {
+      text-align: center; padding: 12px 20px;
+      background: rgba(0,0,0,0.2); border-radius: 12px; min-width: 140px;
+    }
+    [data-page="simulator"] .team-emoji { font-size: 2.5rem; }
+    [data-page="simulator"] .team-name { font-weight: 700; margin: 4px 0; }
+    [data-page="simulator"] .team-power { font-size: 0.8rem; color: var(--hex-blue); }
+    [data-page="simulator"] .vs-badge {
+      font-size: 1.5rem; font-weight: 700; color: var(--hex-blue);
+    }
+    [data-page="simulator"] .result-display {
+      text-align: center; padding: 16px; margin: 12px 0;
+      border-radius: 12px; font-size: 1.3rem; font-weight: 700;
+      display: none;
+    }
+    [data-page="simulator"] .result-display.win {
+      background: rgba(34,197,94,0.2); color: #22c55e; border: 1px solid #22c554;
+    }
+    [data-page="simulator"] .result-display.loss {
+      background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid #ef4444;
+    }
+    [data-page="simulator"] .simulate-btn {
+      background: var(--hex-gold); color: var(--bg-dark); border: none;
+      border-radius: 16px; padding: 14px 32px; font-size: 1.1rem;
+      font-weight: 700; cursor: pointer; margin: 16px 0; width: 100%;
+      max-width: 300px; display: block; margin-left: auto; margin-right: auto;
+    }
+    [data-page="simulator"] .simulate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    [data-page="simulator"] .match-log {
+      max-height: 150px; overflow-y: auto; text-align: left;
+      font-size: 0.85rem; background: rgba(0,0,0,0.2);
+      border-radius: 12px; padding: 12px; margin-top: 12px;
+    }
+    [data-page="simulator"] .log-entry {
+      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* League */
+    [data-page="league"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="league"] .league-table {
+      width: 100%; max-width: 90vw; overflow-x: auto;
+      background: rgba(0,0,0,0.3); border-radius: 12px;
+    }
+    [data-page="league"] table {
+      width: 100%; border-collapse: collapse; font-size: 0.85rem;
+    }
+    [data-page="league"] th {
+      background: rgba(0,0,0,0.4); padding: 10px; text-align: left;
+      font-weight: 700; color: var(--hex-blue); position: sticky; top: 0;
+    }
+    [data-page="league"] td {
+      padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    [data-page="league"] tr.user-team {
+      background: rgba(240,179,75,0.15); border-left: 3px solid var(--hex-gold);
+    }
+    [data-page="league"] .pos { font-weight: 700; width: 30px; }
+    [data-page="league"] .team-cell { display: flex; align-items: center; gap: 8px; }
+    [data-page="league"] .w { color: #22c55e; }
+    [data-page="league"] .l { color: #ef4444; }
+
+    /* Settings */
+    [data-page="settings"] { align-items: stretch !important; justify-content: flex-start !important; padding: 1rem !important; }
+    [data-page="settings"] .settings-list {
+      width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 12px;
+    }
+    [data-page="settings"] .setting-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0,0,0,0.3); padding: 12px 16px; border-radius: 12px;
+    }
+    [data-page="settings"] .toggle {
+      width: 48px; height: 28px; background: rgba(0,0,0,0.4);
+      border-radius: 14px; position: relative; cursor: pointer;
+      border: 1px solid var(--border-glow); transition: 0.2s;
+    }
+    [data-page="settings"] .toggle.active { background: var(--hex-blue); }
+    [data-page="settings"] .toggle::after {
+      content: ''; position: absolute; width: 22px; height: 22px;
+      background: white; border-radius: 50%; top: 2px; left: 3px; transition: 0.2s;
+    }
+    [data-page="settings"] .toggle.active::after { left: 23px; }
+    [data-page="settings"] .theme-options { display: flex; gap: 8px; }
+    [data-page="settings"] .theme-dot {
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: 0.2s;
+    }
+    [data-page="settings"] .theme-dot.active { border-color: var(--hex-gold); }
+    [data-page="settings"] .theme-dot[data-theme="esports"] { background: linear-gradient(135deg, #f0b34b, #2ad4c4); }
+    [data-page="settings"] .theme-dot[data-theme="neon"] { background: linear-gradient(135deg, #ff3d6c, #0afff0); }
+    [data-page="settings"] .theme-dot[data-theme="retro"] { background: linear-gradient(135deg, #bfff40, #3eff9e); }
+    [data-page="settings"] .btn-danger {
+      background: #ef4444; color: white; border: none; border-radius: 8px;
+      padding: 8px 16px; font-weight: 600; cursor: pointer;
+    }
+
+    /* Utils */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .hidden { display: none !important; }
+    .text-gold { color: var(--hex-gold) !important; }
+    .text-blue { color: var(--hex-blue) !important; }
+  </style>
 </head>
-<body class="p-4 lg:p-8">
+<body data-theme="esports">
 
-    <!-- Contenedor principal -->
-    <div class="max-w-7xl mx-auto bg-[#0f1420]/90 backdrop-blur-sm rounded-3xl border border-[#2d3b4f] shadow-2xl p-6">
+<!-- MIZU HUD -->
+<nav class="hud-nav" id="hud-nav" role="navigation" aria-label="Navegación"></nav>
+<div id="stage" role="main"></div>
+
+<!-- FLOATING BUTTONS -->
+<div class="floating-buttons">
+  <button class="float-btn" id="themeBtn" aria-label="Cambiar tema">🎨</button>
+  <button class="float-btn" id="soundBtn" aria-label="Sonido">🔇</button>
+  <button class="float-btn" id="helpBtn" aria-label="Ayuda">❓</button>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-card">
+    <h3 id="modalTitle" style="color:var(--hex-gold);margin-bottom:12px;"></h3>
+    <p id="modalContent"></p>
+    <button id="modalClose">Entendido</button>
+  </div>
+</div>
+
+<script>
+/**
+ * MIZU ENGINE CORE (v2.3.0) - Navegación, foco, audio, temas
+ * NO MODIFICAR: Base para navegación fractal
+ */
+const Mizu = (function() {
+  const Audio = {
+    ctx: null, enabled: false,
+    init() { try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); this.enabled = true; } catch(e) {} },
+    async resume() { if (this.ctx?.state==='suspended') await this.ctx.resume(); },
+    tic(f=800, d=0.05, g=0.04) {
+      if (!this.enabled || !this.ctx) return;
+      try {
+        const o = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        o.type='sine'; o.frequency.value=f; gain.gain.value=g;
+        gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d);
+        o.connect(gain); gain.connect(this.ctx.destination);
+        o.start(); o.stop(this.ctx.currentTime+d+0.01);
+      } catch(e) {}
+    }
+  };
+
+  const db = {
+    '🏠 INICIO': { items: ['🎮 MOBA Manager', '⚙️ Configuración', '❓ Ayuda'], desc: 'Navega con ↑↓ • Enter: seleccionar • ESC: atrás' },
+    '🎮 MOBA Manager': { items: ['📊 Dashboard', '⚔️ Mi Equipo', '🃏 Colección', '🎁 Sobres', '⚔️ Simular', '🏆 Liga'], desc: 'Gestiona tu equipo MOBA' },
+    '📊 Dashboard': { items: [], desc: 'Tu centro de control', page: 'dashboard' },
+    '⚔️ Mi Equipo': { items: [], desc: 'Alinea tus 5 titulares', page: 'team' },
+    '🃏 Colección': { items: [], desc: 'Tus cartas coleccionables', page: 'collection' },
+    '🎁 Sobres': { items: [], desc: 'Abre sobres para nuevos jugadores', page: 'packs' },
+    '⚔️ Simular': { items: [], desc: 'Simula partidos con tu equipo', page: 'simulator' },
+    '🏆 Liga': { items: [], desc: 'Tabla de posiciones actualizada', page: 'league' },
+    '⚙️ Configuración': { items: ['🎨 Tema', '🔊 Sonido', '🗑️ Reset'], desc: 'Preferencias', page: 'settings' },
+    '🎨 Tema': { items: [], desc: 'esports • neon • retro', page: 'settings-theme' },
+    '🔊 Sonido': { items: [], desc: 'Feedback auditivo', page: 'settings-sound' },
+    '🗑️ Reset': { items: [], desc: 'Borrar progreso (irreversible)', page: 'settings-reset' },
+    '❓ Ayuda': { items: ['⌨️ Teclado', '🎮 SmartTV'], desc: 'Controles por dispositivo' },
+    '⌨️ Teclado': { items: [], desc: '↑↓: navegar • Enter: seleccionar • ESC: atrás • ←→: navbar' },
+    '🎮 SmartTV': { items: [], desc: 'D-pad: navegar • OK: seleccionar • Volver: atrás' }
+  };
+
+  let history = ['🏠 INICIO'], lastFocus = null, prevActive = null;
+  const esc = s => s?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+  function updateURL() { window.location.hash = history.map(encodeURIComponent).join('/'); }
+
+  function render(nodeName) {
+    const stage = document.getElementById('stage');
+    stage.querySelectorAll('.node').forEach(n => n.classList.add('zoom-forward'));
+    setTimeout(() => {
+      stage.innerHTML = '';
+      const data = db[nodeName] || { items: [], desc: '📌 Terminal' };
+      
+      if (!data.items?.length && data.page) {
+        // Renderizar página MOBA jugable
+        renderPage(data.page, stage);
+      } else if (!data.items?.length) {
+        const leaf = document.createElement('div');
+        leaf.className = 'node spawn-in'; leaf.tabIndex = 0;
+        leaf.innerHTML = `<div class="node-tag">🏁</div><h2>${esc(nodeName)}</h2><div class="node-detail">${esc(data.desc)}</div>`;
+        stage.appendChild(leaf);
+        bindNode(leaf);
+      } else {
+        data.items.forEach(child => {
+          const div = document.createElement('div');
+          div.className = 'node spawn-in'; div.tabIndex = 0;
+          const cd = db[child] || {};
+          div.innerHTML = `<div class="node-tag">➡️ ${esc(nodeName)}</div><h2>${esc(child)}</h2><div class="node-detail">${esc(cd.desc||'')}</div>`;
+          div.onclick = e => { e.stopPropagation(); go(child); };
+          bindNode(div);
+          stage.appendChild(div);
+        });
+      }
+      updateHUD();
+      requestAnimationFrame(() => {
+        const first = stage.querySelector('.node, .action-btn, .player-card');
+        if (first) { first.focus(); first.scrollIntoView({behavior:'smooth', block:'start'}); lastFocus = first; }
+      });
+    }, 260);
+  }
+
+  function renderPage(page, container) {
+    const pages = {
+      dashboard: renderDashboard, team: renderTeam, collection: renderCollection,
+      packs: renderPacks, simulator: renderSimulator, league: renderLeague,
+      settings: renderSettings, 'settings-theme': () => showSettingsSub('theme'),
+      'settings-sound': () => showSettingsSub('sound'), 'settings-reset': () => showSettingsSub('reset')
+    };
+    pages[page]?.(container);
+  }
+
+  function go(child) { Audio.tic(1100); history.push(child); updateURL(); render(child); }
+  function back() { if (history.length > 1) { Audio.tic(550); history.pop(); updateURL(); render(history[history.length-1]); } }
+
+  function updateHUD() {
+    const nav = document.getElementById('hud-nav'); nav.innerHTML = '';
+    history.forEach((c, i) => {
+      const span = document.createElement('span');
+      span.className = 'crumb'; span.tabIndex = 0;
+      span.textContent = c.length > 18 ? c.slice(0,15)+'…' : c;
+      span.onclick = () => { if (i < history.length-1) { Audio.tic(620); history = history.slice(0,i+1); updateURL(); render(history[history.length-1]); } };
+      span.onkeydown = e => {
+        const crumbs = Array.from(nav.querySelectorAll('.crumb')), idx = crumbs.indexOf(span);
+        if (e.key==='ArrowLeft' && idx>0) { crumbs[idx-1].focus(); e.preventDefault(); }
+        else if (e.key==='ArrowRight' && idx<crumbs.length-1) { crumbs[idx+1].focus(); e.preventDefault(); }
+        else if (e.key==='ArrowDown') { e.preventDefault(); lastFocus?.focus?.(); }
+        else if (e.key==='Enter') { e.preventDefault(); span.click(); }
+      };
+      nav.appendChild(span);
+    });
+  }
+
+  function bindNode(node) {
+    node.onkeydown = e => {
+      if (e.key==='Enter') { node.click(); return; }
+      const nodes = Array.from(document.querySelectorAll('.node')), idx = nodes.indexOf(node);
+      if (e.key==='ArrowDown') { e.preventDefault(); (nodes[idx+1]||document.getElementById('themeBtn'))?.focus(); }
+      else if (e.key==='ArrowUp') { e.preventDefault(); (idx===0 ? document.querySelector('.crumb') : nodes[idx-1])?.focus(); }
+    };
+    node.onfocus = () => lastFocus = node;
+  }
+
+  function openModal(title, content) {
+    prevActive = document.activeElement;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalContent').innerHTML = content;
+    const modal = document.getElementById('modal');
+    modal.classList.add('active'); modal.setAttribute('aria-hidden','false');
+    document.getElementById('modalClose').focus();
+    const trap = e => {
+      if (e.key==='Tab') {
+        const f = modal.querySelectorAll('button,[tabindex]:not([tabindex="-1"])');
+        if (!f.length) return;
+        const [first, last] = [f[0], f[f.length-1]];
+        if (e.shiftKey && document.activeElement===first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement===last) { e.preventDefault(); first.focus(); }
+      }
+      if (e.key==='Escape') closeModal();
+    };
+    modal.addEventListener('keydown', trap);
+    modal._trap = trap;
+  }
+  function closeModal() {
+    const modal = document.getElementById('modal');
+    modal.classList.remove('active'); modal.setAttribute('aria-hidden','true');
+    if (modal._trap) { modal.removeEventListener('keydown', modal._trap); delete modal._trap; }
+    prevActive?.focus?.();
+  }
+
+  const themes = ['esports','neon','retro'];
+  let theme = localStorage.getItem('mizu::theme') || 'esports';
+  function setTheme(t) { document.body.setAttribute('data-theme',t); localStorage.setItem('mizu::theme',t); theme = t; }
+  function cycleTheme() { setTheme(themes[(themes.indexOf(theme)+1)%themes.length]); Audio.tic(880); }
+
+  function init() {
+    Audio.init(); setTheme(theme);
+    if (navigator.userAgent.includes('SmartTV') || window.deviceMemory < 4) document.body.classList.add('reduced-motion');
+    
+    window.addEventListener('keydown', e => {
+      if ((e.key==='Escape'||e.key==='Backspace') && !document.querySelector('.modal-overlay.active')) { e.preventDefault(); back(); }
+    });
+    window.addEventListener('hashchange', () => {
+      const h = window.location.hash.slice(1);
+      if (h) { const p = h.split('/').filter(Boolean).map(decodeURIComponent); if (p.length) { history = p; render(p[p.length-1]); return; } }
+      history = ['🏠 INICIO']; render('🏠 INICIO');
+    });
+    
+    document.getElementById('themeBtn').onclick = () => { cycleTheme(); Audio.tic(880); };
+    document.getElementById('soundBtn').onclick = () => {
+      Game.toggleSound();
+      document.getElementById('soundBtn').textContent = Game.state.sound ? '🔊' : '🔇';
+    };
+    document.getElementById('helpBtn').onclick = () => openModal('❓ Ayuda', '⌨️ ↑↓: navegar • Enter: seleccionar • ESC: atrás<br>🎮 SmartTV: D-pad + OK/Volver');
+    document.getElementById('modalClose').onclick = closeModal;
+    
+    const resume = async () => { await Audio.resume(); document.removeEventListener('click',resume); document.removeEventListener('touchstart',resume); };
+    document.addEventListener('click', resume); document.addEventListener('touchstart', resume);
+    
+    if (window.location.hash) window.dispatchEvent(new Event('hashchange')); else render('🏠 INICIO');
+    console.log('🌀 Mizu Engine + MOBA Manager: Ready');
+  }
+
+  return { init, Audio, openModal, closeModal, renderPage };
+})();
+
+/**
+ * MOBA GAME CORE - Estado, lógica, persistencia offline-first
+ * Namespacing: mizu::game, mizu::user, etc.
+ */
+const Game = (function() {
+  const CFG = {
+    prefix: 'mizu::',
+    rarity: {
+      common: { w: 60, min:30, max:70, c:'#94a3b8' },
+      rare: { w: 25, min:50, max:80, c:'#3b82f6' },
+      epic: { w: 12, min:65, max:90, c:'#a855f7' },
+      legendary: { w: 3, min:80, max:100, c:'#fbbf24' }
+    },
+    packs: { basic: { cost:100, count:3, leg:0 }, premium: { cost:250, count:5, leg:0.1 } }
+  };
+
+  const state = {
+    user: null, players: [], team: { starters:[], tactic:'balanced' },
+    league: { teams:[], week:1, results:[] },
+    coins: 500, energy: 100, sound: false, events: []
+  };
+
+  function load() {
+    try {
+      ['user','players','team','league','coins','energy','sound','events'].forEach(k => {
+        const r = localStorage.getItem(CFG.prefix+k); if (r) state[k] = JSON.parse(r);
+      });
+      if (!state.user) state.user = { name: 'Manager', day: 1 };
+      if (!state.players.length) seedInitialPlayers();
+      if (!state.league.teams.length) initLeague();
+    } catch(e) { console.warn('[Game] Load error:', e); }
+  }
+  function save(k) { try { localStorage.setItem(CFG.prefix+k, JSON.stringify(state[k])); } catch(e) {} }
+  function addEvent(icon, msg) {
+    state.events.unshift({ icon, msg, t: Date.now() });
+    if (state.events.length > 20) state.events.pop();
+    save('events');
+    return state.events[0];
+  }
+
+  function seedInitialPlayers() {
+    const names = ['Zed','Ahri','Lux','Yasuo','Jinx','Thresh','Lee','Ashe','Ezreal','Kai'];
+    const emojis = ['🥷','🧙','🏹','🗡️','🛡️','🤖','👹','🦄','⚡','🐉'];
+    for (let i=0; i<10; i++) {
+      const r = rollRarity();
+      state.players.push({
+        id: 'p'+i, name: names[i]+'#'+(100+i), emoji: emojis[i],
+        rarity: r.name, color: r.c,
+        stats: { vis: rand(r.min,r.max), ref: rand(r.min,r.max), com: rand(r.min,r.max),
+                 tech: rand(r.min,r.max), team: rand(r.min,r.max), mor: rand(r.min,r.max) },
+        acquired: Date.now()
+      });
+    }
+    state.team.starters = state.players.slice(0,5).map(p=>p.id);
+    save('players'); save('team');
+  }
+
+  function initLeague() {
+    const rivals = [
+      { name:'Dragones FC', emoji:'🐉', power: 320 },
+      { name:'Lobos Gris', emoji:'🐺', power: 295 },
+      { name:'Titanes', emoji:'⚙️', power: 310 },
+      { name:'Sombras', emoji:'👥', power: 280 },
+      { name:'Élite', emoji:'👑', power: 340 }
+    ];
+    state.league.teams = [
+      { name: state.user.name, emoji:'🔥', power: calcTeamPower(), w:0, l:0, gw:0, gl:0, user:true },
+      ...rivals.map((r,i)=>({ ...r, w:0, l:0, gw:0, gl:0, user:false }))
+    ];
+    save('league');
+  }
+
+  function rollRarity() {
+    const r = Math.random()*100; let acc=0;
+    for (const [n,c] of Object.entries(CFG.rarity)) { acc+=c.w; if (r<acc) return { name:n, ...c }; }
+    return { name:'common', ...CFG.rarity.common };
+  }
+  function rand(min,max) { return Math.floor(Math.random()*(max-min+1))+min; }
+  function calcTeamPower() {
+    return state.team.starters.map(id=>state.players.find(p=>p.id===id))
+      .filter(Boolean).reduce((s,p)=>s+Object.values(p.stats).reduce((a,b)=>a+b,0),0);
+  }
+  function simulateMatch(userPower, rivalPower) {
+    const diff = Math.abs(userPower - rivalPower);
+    const upset = Math.max(0, 0.35 - diff/500);
+    const rng = Math.random();
+    const userWins = (userPower > rivalPower) ? (rng >= upset) : (rng < upset);
+    const games = `${rand(1,3)}-${rand(1,3)}`;
+    return { userWins, games, userPower, rivalPower };
+  }
+
+  // Acciones públicas
+  function toggleSound() { state.sound = !state.sound; save('sound'); return state.sound; }
+  function spendCoins(amount) { if (state.coins >= amount) { state.coins -= amount; save('coins'); return true; } return false; }
+  function addCoins(amount) { state.coins += amount; save('coins'); }
+  function trainPlayer(playerId) {
+    const p = state.players.find(p=>p.id===playerId);
+    if (!p || state.energy < 10) return { ok:false };
+    state.energy -= 10; save('energy');
+    // Mejorar 2 stats aleatorios
+    const keys = Object.keys(p.stats), picks = keys.sort(()=>0.5-Math.random()).slice(0,2);
+    picks.forEach(k => { p.stats[k] = Math.min(100, p.stats[k]+2); });
+    save('players');
+    addEvent('🏋️', `${p.name} mejoró en ${picks.join(', ')}`);
+    return { ok:true, player:p };
+  }
+  function setStarter(playerId, isStarter) {
+    if (isStarter) {
+      if (state.team.starters.length >= 5) return { ok:false, error:'Límite de 5 titulares' };
+      if (!state.team.starters.includes(playerId)) state.team.starters.push(playerId);
+      state.team.starters = [...new Set(state.team.starters)]; // evitar duplicados
+    } else {
+      state.team.starters = state.team.starters.filter(id=>id!==playerId);
+    }
+    save('team');
+    addEvent(isStarter?'✅':'📦', `Jugador ${isStarter?'promovido':'reservado'}`);
+    return { ok:true };
+  }
+  function setTactic(t) {
+    if (!['aggressive','defensive','balanced','adaptive'].includes(t)) return { ok:false };
+    state.team.tactic = t; save('team');
+    addEvent('📋', `Táctica: ${t}`);
+    return { ok:true };
+  }
+  function openPack(type='basic') {
+    const cfg = CFG.packs[type];
+    if (!spendCoins(cfg.cost)) return { ok:false, error:'Fondos insuficientes' };
+    const newCards = [];
+    for (let i=0; i<cfg.count; i++) {
+      const r = (type==='premium' && Math.random()<cfg.leg) ? { name:'legendary', ...CFG.rarity.legendary } : rollRarity();
+      const names = ['Nova','Vex','Kai','Rell','Zeri','Bel','Nilo','Aur','Zyn','Qix'];
+      const emojis = ['🌟','💫','⚡','🌀','🔮','💎','🌙','☄️','🪐','✨'];
+      const p = {
+        id: 'p'+Date.now()+i, name: names[rand(0,9)]+'#'+rand(100,999), emoji: emojis[rand(0,9)],
+        rarity: r.name, color: r.c,
+        stats: { vis:rand(r.min,r.max), ref:rand(r.min,r.max), com:rand(r.min,r.max),
+                 tech:rand(r.min,r.max), team:rand(r.min,r.max), mor:rand(r.min,r.max) },
+        acquired: Date.now()
+      };
+      state.players.push(p); newCards.push(p);
+    }
+    save('players');
+    addEvent('🎁', `+${newCards.length} cartas (${newCards.filter(c=>c.rarity==='legendary').length} legendaria)`);
+    return { ok:true, cards:newCards };
+  }
+  function playMatch() {
+    if (state.team.starters.length < 5) return { ok:false, error:'Necesitas 5 titulares' };
+    const userPower = calcTeamPower();
+    // Seleccionar rival aleatorio (no usuario)
+    const rivals = state.league.teams.filter(t=>!t.user);
+    const rival = rivals[rand(0, rivals.length-1)];
+    const result = simulateMatch(userPower, rival.power);
+    
+    // Actualizar liga
+    const userTeam = state.league.teams.find(t=>t.user);
+    if (result.userWins) {
+      userTeam.w++; userTeam.gw += parseInt(result.games.split('-')[0]);
+      userTeam.gl += parseInt(result.games.split('-')[1]);
+      addCoins(75); state.energy = Math.min(100, state.energy+10);
+      addEvent('🏆', `Victoria vs ${rival.emoji} ${rival.name} (${result.games})`);
+    } else {
+      userTeam.l++; userTeam.gw += parseInt(result.games.split('-')[1]);
+      userTeam.gl += parseInt(result.games.split('-')[0]);
+      addCoins(25);
+      addEvent('❌', `Derrota vs ${rival.emoji} ${rival.name} (${result.games})`);
+    }
+    state.league.week++;
+    save('league'); save('coins'); save('energy');
+    addEvent('📅', `Jornada ${state.league.week} completada`);
+    return { ok:true, result, rival };
+  }
+  function getStandings() {
+    return [...state.league.teams].sort((a,b) => {
+      if (b.w !== a.w) return b.w - a.w;
+      return (b.gw-b.gl) - (a.gw-a.gl);
+    });
+  }
+  function reset() {
+    Object.keys(localStorage).filter(k=>k.startsWith(CFG.prefix)).forEach(k=>localStorage.removeItem(k));
+    location.reload();
+  }
+
+  function init() { load(); console.log('[Game] Loaded:', { coins:state.coins, players:state.players.length }); }
+
+  return {
+    init, state, CFG,
+    toggleSound, spendCoins, addCoins, trainPlayer, setStarter, setTactic, openPack, playMatch, getStandings, reset,
+    calcTeamPower, addEvent
+  };
+})();
+
+/**
+ * PAGE RENDERERS - Jugabilidad real, scoped a [data-page]
+ */
+
+// ===== DASHBOARD =====
+function renderDashboard(container) {
+  const { user, coins, energy, events, team } = Game.state;
+  const starters = team.starters.map(id=>Game.state.players.find(p=>p.id===id)).filter(Boolean);
+  
+  container.innerHTML = `
+    <div data-page="dashboard" class="node spawn-in" tabindex="0">
+      <div class="dashboard-header">
+        <div>
+          <div class="node-tag">📊 DASHBOARD</div>
+          <h2>¡Hola, ${esc(user.name)}! 🔥</h2>
+          <div class="node-detail">Día ${user.day} • Energía: ${energy} • Monedas: ${coins} 🪙</div>
+        </div>
+        <div class="resource-bar">
+          <span class="resource">⚡ ${energy}/100</span>
+          <span class="resource">🪙 ${coins}</span>
+          <span class="resource">👥 ${starters.length}/5 titulares</span>
+        </div>
+      </div>
+      
+      <div class="quick-actions">
+        <button class="action-btn priority" data-action="simulate" aria-label="Simular próximo partido">
+          <span class="icon">⚔️</span><span>Simular</span>
+        </button>
+        <button class="action-btn" data-action="team" aria-label="Gestionar equipo">
+          <span class="icon">⚙️</span><span>Equipo</span>
+        </button>
+        <button class="action-btn" data-action="packs" aria-label="Abrir sobres">
+          <span class="icon">🎁</span><span>Sobres</span>
+        </button>
+      </div>
+      
+      <div class="event-feed" id="eventFeed" aria-live="polite">
+        ${events.map(e=>`<div class="event"><span class="event-icon">${e.icon}</span><span>${esc(e.msg)}</span><span class="event-time">${new Date(e.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>`).join('') || '<div class="event"><span class="event-icon">📋</span><span>Sin eventos recientes</span></div>'}
+      </div>
+    </div>
+  `;
+  
+  // Event handlers
+  const cleanup = [];
+  container.querySelectorAll('.action-btn').forEach(btn => {
+    const act = btn.dataset.action;
+    const handler = e => {
+      e.stopPropagation();
+      if (Game.state.sound) Mizu.Audio.tic(1100);
+      if (act==='simulate') Mizu.renderPage('simulator', container);
+      else if (act==='team') Mizu.renderPage('team', container);
+      else if (act==='packs') Mizu.renderPage('packs', container);
+    };
+    btn.onclick = handler;
+    btn.onkeydown = e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); btn.click(); } };
+    cleanup.push(()=>{ btn.onclick=null; btn.onkeydown=null; });
+  });
+  
+  container._cleanup = () => cleanup.forEach(fn=>fn?.());
+}
+
+// ===== TEAM MANAGEMENT =====
+function renderTeam(container) {
+  const { players, team } = Game.state;
+  const starters = team.starters.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+  const reserves = players.filter(p=>!team.starters.includes(p.id));
+  
+  container.innerHTML = `
+    <div data-page="team" class="node spawn-in" tabindex="0">
+      <div class="team-header">
+        <div>
+          <div class="node-tag">⚔️ MI EQUIPO</div>
+          <h2>Alineación (${starters.length}/5)</h2>
+          <div class="node-detail">Clic en carta para subir/bajar</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3 class="section-title">🔰 Titulares</h3>
+        <div class="players-row" id="startersRow">
+          ${starters.map(p=>playerCardHTML(p,true)).join('') || '<p style="color:var(--hex-blue);font-size:0.9rem">Sin titulares aún</p>'}
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3 class="section-title">📦 Reservas (${reserves.length})</h3>
+        <div class="players-row" id="reservesRow">
+          ${reserves.map(p=>playerCardHTML(p,false)).join('')}
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3 class="section-title">📋 Táctica</h3>
+        <div class="tactics-bar">
+          ${['balanced','aggressive','defensive','adaptive'].map(t=>`<button class="tactic-btn ${team.tactic===t?'active':''}" data-tactic="${t}">${t==='balanced'?'⚖️':t==='aggressive'?'⚔️':t==='defensive'?'🛡️':'🔄'} ${t}</button>`).join('')}
+        </div>
+      </div>
+      
+      <div class="team-actions">
+        <input type="text" id="teamName" placeholder="Nombre del equipo" value="${esc(Game.state.user.name)}">
+        <button class="btn-primary" id="saveTeam">💾 Guardar</button>
+      </div>
+    </div>
+  `;
+  
+  function playerCardHTML(p, isStarter) {
+    const total = Object.values(p.stats).reduce((a,b)=>a+b,0);
+    return `<div class="player-card rarity-${p.rarity} ${isStarter?'starter':''}" data-id="${p.id}" tabindex="0">
+      <span class="player-emoji">${p.emoji}</span>
+      <span class="player-name">${esc(p.name)}</span>
+      <span class="player-stats">⚡ ${total}</span>
+      <span class="player-rarity" style="color:${p.color}">${p.rarity}</span>
+    </div>`;
+  }
+  
+  const cleanup = [];
+  
+  // Toggle starter
+  container.querySelectorAll('.player-card').forEach(card => {
+    const handler = e => {
+      e.stopPropagation();
+      const id = card.dataset.id;
+      const isStarter = card.classList.contains('starter');
+      const res = Game.setStarter(id, !isStarter);
+      if (res.ok) {
+        if (Game.state.sound) Mizu.Audio.tic(700);
+        renderTeam(container); // Re-render simple
+      } else Mizu.openModal('⚠️', res.error);
+    };
+    card.onclick = handler;
+    card.onkeydown = e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); card.click(); } };
+    cleanup.push(()=>{ card.onclick=null; card.onkeydown=null; });
+  });
+  
+  // Tactics
+  container.querySelectorAll('.tactic-btn').forEach(btn => {
+    btn.onclick = () => {
+      Game.setTactic(btn.dataset.tactic);
+      container.querySelectorAll('.tactic-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      if (Game.state.sound) Mizu.Audio.tic(600);
+    };
+  });
+  
+  // Save team name
+  document.getElementById('saveTeam')?.addEventListener('click', () => {
+    const name = document.getElementById('teamName').value.trim();
+    if (name) { Game.state.user.name = name; Game.save('user'); }
+    Mizu.openModal('✅ Guardado', `Equipo: ${esc(name)}`);
+  });
+  
+  container._cleanup = () => cleanup.forEach(fn=>fn?.());
+}
+
+// ===== COLLECTION =====
+function renderCollection(container) {
+  const { players } = Game.state;
+  let filter = 'all';
+  
+  function renderGrid(f) {
+    const filtered = f==='all' ? players : players.filter(p=>p.rarity===f);
+    document.getElementById('collectionGrid').innerHTML = filtered.map(p=>`
+      <div class="player-card rarity-${p.rarity}" data-id="${p.id}" tabindex="0">
+        <span class="player-emoji">${p.emoji}</span>
+        <span class="player-name">${esc(p.name)}</span>
+        <div class="radar-mini" id="radar-${p.id}"></div>
+        <span class="player-rarity" style="color:${p.color}">${p.rarity}</span>
+      </div>
+    `).join('') || '<p style="grid-column:1/-1;text-align:center;color:var(--hex-blue)">Sin cartas aún</p>';
+    
+    // Render mini radars
+    filtered.forEach(p => {
+      const el = document.getElementById(`radar-${p.id}`);
+      if (!el) return;
+      const vals = Object.values(p.stats), labels = ['V','R','C','T','W','M'];
+      const cx=30,cy=30,r=22;
+      const pts = vals.map((v,i)=>{ const a=(i/6)*Math.PI*2-Math.PI/2; return `${cx+(v/100)*r*Math.cos(a)},${cy+(v/100)*r*Math.sin(a)}`; }).join(' ');
+      el.innerHTML = `<svg viewBox="0 0 60 60"><polygon points="${pts}" fill="${p.color}30" stroke="${p.color}" stroke-width="1.5"/>${labels.map((l,i)=>{const a=(i/6)*Math.PI*2-Math.PI/2;return `<text x="${cx+25*Math.cos(a)}" y="${cy+25*Math.sin(a)}" font-size="5" fill="var(--hex-blue)" text-anchor="middle">${l}</text>`;}).join('')}</svg>`;
+    });
+  }
+  
+  container.innerHTML = `
+    <div data-page="collection" class="node spawn-in" tabindex="0">
+      <div class="collection-header">
+        <div>
+          <div class="node-tag">🃏 COLECCIÓN</div>
+          <h2>Tus Cartas (${players.length})</h2>
+        </div>
+        <div class="filter-bar">
+          ${['all','common','rare','epic','legendary'].map(r=>`<button class="filter-btn ${r===filter?'active':''}" data-filter="${r}">${r}</button>`).join('')}
+        </div>
+      </div>
+      <div class="collection-grid" id="collectionGrid"></div>
+    </div>
+  `;
+  
+  renderGrid(filter);
+  
+  const cleanup = [];
+  
+  // Filters
+  container.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      filter = btn.dataset.filter;
+      container.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderGrid(filter);
+    };
+  });
+  
+  // Card details
+  container.querySelectorAll('.player-card').forEach(card => {
+    const handler = e => {
+      e.stopPropagation();
+      const p = Game.state.players.find(x=>x.id===card.dataset.id);
+      if (p) {
+        const stats = Object.entries(p.stats).map(([k,v])=>`${k}:${v}`).join(' • ');
+        Mizu.openModal(`${p.emoji} ${esc(p.name)}`, `<strong style="color:${p.color}">${p.rarity.toUpperCase()}</strong><br><br>${stats}`);
+      }
+    };
+    card.onclick = handler;
+    card.onkeydown = e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); card.click(); } };
+    cleanup.push(()=>{ card.onclick=null; card.onkeydown=null; });
+  });
+  
+  container._cleanup = () => cleanup.forEach(fn=>fn?.());
+}
+
+// ===== PACKS =====
+function renderPacks(container) {
+  const { coins } = Game.state;
+  
+  container.innerHTML = `
+    <div data-page="packs" class="node spawn-in" tabindex="0">
+      <div class="node-tag">🎁 SOBRES</div>
+      <h2>Tienda de Cartas</h2>
+      <div class="node-detail">Monedas: <strong class="text-gold">${coins} 🪙</strong></div>
+      
+      <div class="packs-grid">
+        <div class="pack-card" tabindex="0">
+          <div class="pack-icon">📦</div>
+          <div class="pack-name">Básico</div>
+          <div class="pack-price">100 🪙</div>
+          <div class="pack-desc">3 cartas • Sin legendarias</div>
+          <button class="open-btn" id="openBasic" ${coins<100?'disabled':''}>Abrir</button>
+        </div>
+        <div class="pack-card premium" tabindex="0">
+          <div class="pack-icon">✨📦</div>
+          <div class="pack-name">Premium</div>
+          <div class="pack-price">250 🪙</div>
+          <div class="pack-desc">5 cartas • 10% legendaria</div>
+          <button class="open-btn" id="openPremium" ${coins<250?'disabled':''}>Abrir</button>
+        </div>
+      </div>
+      
+      <div class="pack-result" id="packResult"></div>
+    </div>
+  `;
+  
+  const cleanup = [];
+  
+  function open(type) {
+    const res = Game.openPack(type);
+    const resultDiv = document.getElementById('packResult');
+    if (res.ok) {
+      resultDiv.innerHTML = res.cards.map(p=>`
+        <div class="player-card rarity-${p.rarity} new-card" style="width:100px">
+          <span class="player-emoji">${p.emoji}</span>
+          <span class="player-name" style="font-size:0.7rem">${esc(p.name)}</span>
+          <span class="player-rarity" style="color:${p.color};font-size:0.6rem">${p.rarity}</span>
+        </div>
+      `).join('');
+      if (Game.state.sound) Mizu.Audio.tic(res.cards.some(c=>c.rarity==='legendary')?1200:900);
+      const leg = res.cards.filter(c=>c.rarity==='legendary').length;
+      Mizu.openModal('🎉 ¡Sobre abierto!', `+${res.cards.length} cartas${leg?`<br><span class="text-gold">✨ ${leg} LEGENDARIA${leg>1?'S':''} ✨</span>`:''}`);
+    } else {
+      Mizu.openModal('💸', 'Fondos insuficientes');
+    }
+    // Update buttons
+    document.getElementById('openBasic').disabled = Game.state.coins < 100;
+    document.getElementById('openPremium').disabled = Game.state.coins < 250;
+  }
+  
+  document.getElementById('openBasic')?.addEventListener('click', ()=>open('basic'));
+  document.getElementById('openPremium')?.addEventListener('click', ()=>open('premium'));
+  
+  container.querySelectorAll('.pack-card').forEach(card => {
+    card.onkeydown = e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); card.querySelector('button')?.click(); } };
+  });
+  
+  container._cleanup = () => cleanup.forEach(fn=>fn?.());
+}
+
+// ===== SIMULATOR =====
+function renderSimulator(container) {
+  const { team, players } = Game.state;
+  const starters = team.starters.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+  const ready = starters.length >= 5;
+  
+  container.innerHTML = `
+    <div data-page="simulator" class="node spawn-in" tabindex="0">
+      <div class="node-tag">⚔️ SIMULADOR</div>
+      <h2>Simular Partido</h2>
+      <div class="node-detail">${ready?'Tu equipo está listo. ¡Simula!':'<span class="text-blue">⚠️ Necesitas 5 titulares</span><br>Ve a "Mi Equipo" para completar.'}</div>
+      
+      <div class="match-arena">
+        <div class="teams-display">
+          <div class="team-display">
+            <div class="team-emoji">🔥</div>
+            <div class="team-name">${esc(Game.state.user.name)}</div>
+            <div class="team-power">⚡ ${Game.calcTeamPower()}</div>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="team-display">
+            <div class="team-emoji">🐉</div>
+            <div class="team-name">Rival IA</div>
+            <div class="team-power">⚡ ~300</div>
+          </div>
+        </div>
         
-        <!-- Cabecera con monedas y sonido -->
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <h1 class="text-3xl font-extrabold bg-gradient-to-r from-amber-300 to-yellow-500 text-transparent bg-clip-text">✨ Fantasy MOBA · Coleccionable ✨</h1>
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2 bg-[#1e293b] py-2 px-4 rounded-full border border-amber-500/50">
-                    <span class="text-2xl">🪙</span>
-                    <span id="currency-amount" class="font-bold text-xl text-amber-300">500</span>
-                </div>
-                <button id="toggle-sound" class="text-2xl bg-slate-700 p-2 rounded-full hover:bg-slate-600 transition" title="Activar/desactivar sonido">🔊</button>
-            </div>
+        <div id="matchResult" class="result-display"></div>
+        
+        <button id="simulateBtn" class="simulate-btn" ${!ready?'disabled':''}>▶️ Simular Partido</button>
+        
+        <div class="match-log" id="matchLog">
+          <div class="log-entry">📋 Esperando simulación...</div>
         </div>
-
-        <!-- Pestañas -->
-        <div class="flex flex-wrap gap-1 border-b border-slate-700 mb-6">
-            <button class="tab-btn active px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="log">📋 Eventos</button>
-            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="league">🏆 Liga</button>
-            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="collection">📚 Colección</button>
-            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="team">⚔️ Mi Equipo</button>
-            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="packs">🎁 Sobres</button>
-            <button class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition" data-tab="participants">👥 Participantes</button>
-        </div>
-
-        <!-- Contenido de pestañas (todas dinámicas) -->
-        <div id="tab-content" class="min-h-[500px] transition-all">
-            <!-- LOGS (por defecto visible) -->
-            <div id="log-panel" class="tab-panel">
-                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><span class="text-amber-400">📢</span> Noticias del nexo</h2>
-                    <div id="game-log" class="h-96 overflow-y-auto custom-scroll space-y-2 pr-2"></div>
-                </div>
-            </div>
-
-            <!-- LIGA (tabla + calendario + bracket) -->
-            <div id="league-panel" class="tab-panel hidden">
-                <div class="grid lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                        <h2 class="text-xl font-bold mb-3">📊 Tabla de posiciones</h2>
-                        <div id="league-standings" class="overflow-x-auto"></div>
-                    </div>
-                    <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                        <h2 class="text-xl font-bold mb-3">📅 Jornada <span id="current-week">0</span></h2>
-                        <div id="match-results-container" class="space-y-3 max-h-80 overflow-y-auto custom-scroll"></div>
-                    </div>
-                    <div class="lg:col-span-3 bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                        <h2 class="text-xl font-bold mb-3">🧩 Bracket eliminatorio</h2>
-                        <div id="bracket-container" class="min-h-[150px]"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- COLECCIÓN (todas las cartas del usuario) -->
-            <div id="collection-panel" class="tab-panel hidden">
-                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">📇 Tus cartas ( <span id="collection-count">0</span> )</h2>
-                        <div class="flex gap-2">
-                            <select id="rarity-filter" class="bg-slate-800 rounded-lg px-3 py-1 text-sm border border-slate-600">
-                                <option value="all">Todas</option>
-                                <option value="common">Común</option>
-                                <option value="rare">Rara</option>
-                                <option value="epic">Épica</option>
-                                <option value="legendary">Legendaria</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 justify-items-center"></div>
-                </div>
-            </div>
-
-            <!-- MI EQUIPO (alineación) -->
-            <div id="team-panel" class="tab-panel hidden">
-                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                    <h2 class="text-xl font-bold mb-3">⚔️ Alineación titular (<span id="starter-count">0/5</span>)</h2>
-                    <div id="starter-players" class="flex flex-wrap gap-4 justify-center mb-8 min-h-[200px] bg-slate-900/40 rounded-xl p-4"></div>
-                    
-                    <h2 class="text-xl font-bold mb-3">📦 Reservas (haz clic para subir/bajar)</h2>
-                    <div id="available-players" class="flex flex-wrap gap-4 justify-center"></div>
-
-                    <div class="mt-6 flex gap-3">
-                        <input type="text" id="team-name-input" placeholder="Nombre del equipo" class="bg-slate-800 rounded-lg px-4 py-2 border border-slate-600">
-                        <input type="text" id="team-emoji-input" maxlength="2" placeholder="Emoji" class="w-16 bg-slate-800 rounded-lg px-2 py-2 border border-slate-600 text-center">
-                        <button id="update-team-btn" class="bg-amber-600 hover:bg-amber-700 px-6 py-2 rounded-lg font-bold">Actualizar</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SOBRES (apertura) -->
-            <div id="packs-panel" class="tab-panel hidden">
-                <div class="bg-[#1a2538] rounded-2xl p-6 border border-slate-700 text-center">
-                    <h2 class="text-3xl font-bold mb-6">🎁 Tienda de sobres</h2>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-10">
-                        <div class="bg-gradient-to-b from-yellow-900 to-amber-800 p-6 rounded-3xl shadow-2xl w-64 border-4 border-amber-500">
-                            <div class="text-8xl mb-2 select-none">📦</div>
-                            <p class="text-2xl font-bold">Sobre básico</p>
-                            <p class="text-amber-300 text-xl mt-1">100 🪙</p>
-                            <button id="open-basic-pack" class="mt-4 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold text-lg transition">Abrir</button>
-                        </div>
-                        <div class="bg-gradient-to-b from-purple-900 to-purple-800 p-6 rounded-3xl shadow-2xl w-64 border-4 border-purple-400">
-                            <div class="text-8xl mb-2 select-none">✨📦</div>
-                            <p class="text-2xl font-bold">Sobre premium</p>
-                            <p class="text-purple-300 text-xl mt-1">250 🪙</p>
-                            <button id="open-premium-pack" class="mt-4 w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-bold text-lg transition">Abrir</button>
-                        </div>
-                    </div>
-                    <!-- Resultado de apertura -->
-                    <div id="pack-result" class="mt-10 grid grid-cols-2 md:grid-cols-5 gap-4 justify-items-center"></div>
-                </div>
-            </div>
-
-            <!-- PARTICIPANTES (todos los equipos) -->
-            <div id="participants-panel" class="tab-panel hidden">
-                <div class="bg-[#1a2538] rounded-2xl p-5 border border-slate-700">
-                    <h2 class="text-xl font-bold mb-4">🌍 Equipos de la liga</h2>
-                    <div id="all-teams-container" class="space-y-6"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Controles de simulación -->
-        <div class="mt-8 flex flex-wrap gap-4 justify-center">
-            <button id="next-step-btn" class="bg-cyan-600 hover:bg-cyan-700 px-10 py-4 rounded-xl font-bold text-xl shadow-lg transition flex items-center gap-2">⏩ Siguiente jornada</button>
-            <button id="new-season-btn" class="bg-slate-700 hover:bg-slate-600 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hidden">🔄 Nueva temporada</button>
-        </div>
+      </div>
     </div>
+  `;
+  
+  const log = document.getElementById('matchLog');
+  function addLog(msg) {
+    const e = document.createElement('div'); e.className='log-entry'; e.textContent='• '+msg;
+    log.prepend(e); if (log.children.length>8) log.removeChild(log.lastChild);
+  }
+  
+  document.getElementById('simulateBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('simulateBtn');
+    const resDiv = document.getElementById('matchResult');
+    btn.disabled = true; resDiv.style.display='none';
+    addLog('🔄 Calculando poder...'); await new Promise(r=>setTimeout(r,300));
+    addLog('⚙️ Simulando...'); await new Promise(r=>setTimeout(r,400));
+    
+    const result = Game.playMatch();
+    if (result.ok) {
+      const r = result.result;
+      resDiv.style.display = 'block';
+      resDiv.textContent = `${r.userWins?'✅ Victoria':'❌ Derrota'} • ${r.games}`;
+      resDiv.className = `result-display ${r.userWins?'win':'loss'}`;
+      addLog(`🏆 ${r.userWins?'Victoria':'Derrota'} vs ${esc(result.rival.name)} (${r.games})`);
+      addLog(`💰 +${r.userWins?75:25} 🪙 • ⚡ +${r.userWins?10:0}`);
+      if (Game.state.sound) Mizu.Audio.tic(r.userWins?1000:600);
+    } else {
+      addLog(`⚠️ ${result.error}`);
+      Mizu.openModal('⚠️', result.error);
+    }
+    btn.disabled = false;
+  });
+  
+  container._cleanup = () => {};
+}
 
-    <!-- Modal de apertura (bonito) -->
-    <div id="pack-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden backdrop-blur-sm">
-        <div class="bg-[#1e2a3a] p-6 rounded-3xl border-4 border-amber-500 max-w-2xl w-full mx-4 shadow-2xl">
-            <h3 class="text-3xl font-bold text-center mb-4" id="pack-modal-title">¡Sobre abierto!</h3>
-            <div id="pack-modal-cards" class="grid grid-cols-2 md:grid-cols-3 gap-4 justify-items-center"></div>
-            <button id="close-pack-modal" class="mt-6 bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-xl font-bold mx-auto block">Aceptar</button>
-        </div>
+// ===== LEAGUE =====
+function renderLeague(container) {
+  const standings = Game.getStandings();
+  
+  container.innerHTML = `
+    <div data-page="league" class="node spawn-in" tabindex="0">
+      <div class="node-tag">🏆 LIGA</div>
+      <h2>Tabla de Posiciones</h2>
+      <div class="node-detail">Jornada ${Game.state.league.week}</div>
+      
+      <div class="league-table">
+        <table>
+          <thead><tr><th>#</th><th>Equipo</th><th class="w">V</th><th class="l">D</th><th>±</th><th>Poder</th></tr></thead>
+          <tbody>
+            ${standings.map((t,i)=>`
+              <tr class="${t.user?'user-team':''}">
+                <td class="pos">${i+1}</td>
+                <td class="team-cell"><span style="font-size:1.3rem">${t.emoji}</span>${esc(t.name)}${t.user?' <span class="text-gold">(Tú)</span>':''}</td>
+                <td class="w">${t.w}</td>
+                <td class="l">${t.l}</td>
+                <td>${t.gw-t.gl>=0?'+':''}${t.gw-t.gl}</td>
+                <td>${t.power||'~'+Math.floor(250+Math.random()*100)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
+  `;
+  container._cleanup = () => {};
+}
 
-    <script>
-        (function() {
-            // --------------------------------------------------------------
-            // 1. Gestor de sonido (simulado con Web Audio, adictivo)
-            // --------------------------------------------------------------
-            class SoundManager {
-                constructor() {
-                    this.audioCtx = null;
-                    this.muted = false;
-                    this.init();
-                }
-                init() {
-                    try {
-                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    } catch (e) { console.warn("Web Audio no soportado"); }
-                }
-                toggle() { this.muted = !this.muted; return this.muted; }
-                play(type) {
-                    if (this.muted || !this.audioCtx) return;
-                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-                    const now = this.audioCtx.currentTime;
-                    const osc = this.audioCtx.createOscillator();
-                    const gain = this.audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.audioCtx.destination);
-                    
-                    switch(type) {
-                        case 'packOpen': // crujido de sobre + subida
-                            osc.type = 'triangle';
-                            osc.frequency.value = 300;
-                            gain.gain.setValueAtTime(0.2, now);
-                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                            osc.start(now);
-                            osc.stop(now + 0.3);
-                            // segundo armónico
-                            const osc2 = this.audioCtx.createOscillator();
-                            osc2.type = 'sine';
-                            osc2.frequency.value = 600;
-                            osc2.connect(gain);
-                            osc2.start(now);
-                            osc2.stop(now + 0.2);
-                            break;
-                        case 'rare': // brillo legendario
-                            osc.type = 'sine';
-                            osc.frequency.value = 880;
-                            gain.gain.setValueAtTime(0.3, now);
-                            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-                            osc.start(now);
-                            osc.stop(now + 0.6);
-                            break;
-                        case 'victory': // fanfarria simple
-                            osc.type = 'square';
-                            osc.frequency.value = 523.25;
-                            gain.gain.setValueAtTime(0.2, now);
-                            gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-                            osc.start(now);
-                            osc.stop(now + 0.15);
-                            setTimeout(() => {
-                                const osc3 = this.audioCtx.createOscillator();
-                                osc3.type = 'square';
-                                osc3.frequency.value = 659.25;
-                                osc3.connect(gain);
-                                gain.gain.setValueAtTime(0.2, now+0.2);
-                                gain.gain.linearRampToValueAtTime(0.01, now+0.35);
-                                osc3.start(now+0.2);
-                                osc3.stop(now+0.35);
-                            }, 200);
-                            break;
-                        case 'click':
-                        default:
-                            osc.type = 'sine';
-                            osc.frequency.value = 400;
-                            gain.gain.setValueAtTime(0.1, now);
-                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                            osc.start(now);
-                            osc.stop(now + 0.1);
-                    }
-                }
-            }
-            const sound = new SoundManager();
+// ===== SETTINGS =====
+function renderSettings(container) {
+  container.innerHTML = `
+    <div data-page="settings" class="node spawn-in" tabindex="0">
+      <div class="node-tag">⚙️ CONFIGURACIÓN</div>
+      <h2>Preferencias</h2>
+      
+      <div class="settings-list">
+        <div class="setting-row">
+          <span>🔊 Sonido</span>
+          <div id="soundToggle" class="toggle ${Game.state.sound?'active':''}" role="switch" tabindex="0"></div>
+        </div>
+        <div class="setting-row">
+          <span>🎨 Tema</span>
+          <div class="theme-options">
+            ${['esports','neon','retro'].map(t=>`<div class="theme-dot ${t===(localStorage.getItem('mizu::theme')||'esports')?'active':''}" data-theme="${t}" tabindex="0"></div>`).join('')}
+          </div>
+        </div>
+        <div class="setting-row">
+          <span style="color:#ef4444">🗑️ Reset Datos</span>
+          <button class="btn-danger" id="resetBtn">Borrar Todo</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const cleanup = [];
+  
+  document.getElementById('soundToggle')?.addEventListener('click', () => {
+    Game.toggleSound();
+    document.getElementById('soundToggle').classList.toggle('active', Game.state.sound);
+    document.getElementById('soundBtn').textContent = Game.state.sound ? '🔊' : '🔇';
+  });
+  
+  document.querySelectorAll('.theme-dot').forEach(dot => {
+    dot.onclick = () => {
+      Mizu.setTheme(dot.dataset.theme);
+      document.querySelectorAll('.theme-dot').forEach(d=>d.classList.remove('active'));
+      dot.classList.add('active');
+      if (Game.state.sound) Mizu.Audio.tic(880);
+    };
+  });
+  
+  document.getElementById('resetBtn')?.addEventListener('click', () => {
+    Mizu.openModal('⚠️ ¿Seguro?', 'Esto borrará TODO tu progreso.<br><br><strong>No se puede deshacer.</strong><br><br><button id="confirmReset" style="background:#ef4444;color:white;border:none;padding:8px 16px;border-radius:8px;margin-top:12px;cursor:pointer">Sí, borrar</button>');
+    setTimeout(()=>{
+      document.getElementById('confirmReset')?.addEventListener('click', Game.reset);
+    }, 100);
+  });
+  
+  container._cleanup = () => cleanup.forEach(fn=>fn?.());
+}
 
-            // --------------------------------------------------------------
-            // 2. Clases del juego (Player, Team, etc.)
-            // --------------------------------------------------------------
-            const firstNames = ["Juan", "Maria", "Pedro", "Ana", "Luis", "Sofía", "Carlos", "Laura", "Diego", "Paula", "David", "Lucía", "Alejandro", "Elena", "José", "Isabel"];
-            const lastNames = ["García", "Rodríguez", "López", "Martínez", "Pérez", "González", "Sánchez", "Romero"];
-            const nationalities = ["Argentina 🇦🇷","Brasil 🇧🇷","México 🇲🇽","España 🇪🇸","Chile 🇨🇱","Colombia 🇨🇴","Perú 🇵🇪"];
-            const playerEmojis = ["🥷","🧙","🏹","🗡️","🛡️","🤖","👹","👽","🦄","🐼","🐉","⚡️"];
-            const attributes = ["vision","reflexes","communication","tecnologia","teamwork","mood"];
-            
-            // Rarezas con probabilidad (acumulado)
-            const rarityLevels = [
-                { name: 'common', color: 'rarity-common', weight: 60, minStat: 30, maxStat: 70 },
-                { name: 'rare', color: 'rarity-rare', weight: 25, minStat: 50, maxStat: 80 },
-                { name: 'epic', color: 'rarity-epic', weight: 12, minStat: 65, maxStat: 90 },
-                { name: 'legendary', color: 'rarity-legendary', weight: 3, minStat: 80, maxStat: 100 }
-            ];
+function showSettingsSub(sub) {
+  const msgs = { theme:'🎨 Tema cambiado', sound:'🔊 '+ (Game.state.sound?'Activado':'Desactivado'), reset:'Usa "Borrar Todo" en Configuración' };
+  Mizu.openModal('⚙️', msgs[sub]||'Opción en desarrollo.');
+  Mizu.renderPage('settings', document.getElementById('stage'));
+}
 
-            let playerIdCounter = 1000;
+// ===== UTIL =====
+const esc = s => String(s||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 
-            class Player {
-                constructor(rarity = null) {
-                    this.id = playerIdCounter++;
-                    this.name = `${firstNames[Math.floor(Math.random()*firstNames.length)]} ${lastNames[Math.floor(Math.random()*lastNames.length)]}`;
-                    this.emoji = playerEmojis[Math.floor(Math.random()*playerEmojis.length)];
-                    this.nationality = nationalities[Math.floor(Math.random()*nationalities.length)];
-                    
-                    // Asignar rareza
-                    if (!rarity) rarity = this.randomRarity();
-                    this.rarity = rarity.name;
-                    this.rarityColor = rarity.color;
-                    
-                    this.attributes = {};
-                    const baseMin = rarity.minStat;
-                    const baseMax = rarity.maxStat;
-                    attributes.forEach(attr => {
-                        this.attributes[attr] = Math.floor(Math.random() * (baseMax - baseMin + 1)) + baseMin;
-                    });
-                }
-                randomRarity() {
-                    const r = Math.random() * 100;
-                    let acc = 0;
-                    for (let rar of rarityLevels) {
-                        acc += rar.weight;
-                        if (r < acc) return rar;
-                    }
-                    return rarityLevels[0];
-                }
-            }
-
-            class Team {
-                constructor(name, emoji, isUser = false) {
-                    this.key = name.replace(/\s/g,'') + Date.now() + Math.random();
-                    this.name = name;
-                    this.emoji = emoji;
-                    this.isUserTeam = isUser;
-                    this.players = [];
-                    this.starters = [];
-                    this.wins = 0; this.losses = 0; this.gamesWon = 0; this.gamesLost = 0;
-                    this.bracketLosses = 0;
-                }
-            }
-
-            // --------------------------------------------------------------
-            // 3. Estado global
-            // --------------------------------------------------------------
-            let gameState = {
-                teams: [],
-                schedule: [],
-                results: [],
-                currentWeek: 0,
-                season: 1,
-                bracket: { phase: 'regular', pendingMatches: [], wbHistory: [], lbHistory: [], gfHistory: [], winner: null },
-                userCurrency: 500,
-                userCollection: [],        // todas las cartas del usuario (players)
-                userTeamObj: null,
-                tournamentStats: { first:0, second:0, third:0, total:0 },
-                userMatchHistory: []
-            };
-
-            // --------------------------------------------------------------
-            // 4. Funciones de generación
-            // --------------------------------------------------------------
-            function generateAITeams(count = 5) {
-                const teamNames = [
-                    { name:"Dragones de Fuego", emoji:"🐉" }, { name:"Lobos de Hielo", emoji:"🐺" }, { name:"Titanes de Acero", emoji:"⚙️" },
-                    { name:"Sombras Eternas", emoji:"👥" }, { name:"Elite Dorada", emoji:"👑" }, { name:"Guardianes del Nexo", emoji:"🛡️" }
-                ];
-                for (let i=0; i<count; i++) {
-                    let tData = teamNames[i % teamNames.length];
-                    let team = new Team(tData.name + (i>2 ? " "+i : ""), tData.emoji, false);
-                    // crear 8-10 jugadores IA
-                    for (let j=0; j<10; j++) team.players.push(new Player(rarityLevels[Math.floor(Math.random()*3)])); // IA sin legendarias
-                    // starters aleatorios
-                    team.starters = team.players.slice(0,5);
-                    gameState.teams.push(team);
-                }
-            }
-
-            function createUserTeam() {
-                let team = new Team("Mis Leyendas", "🔥", true);
-                // regalamos 5 cartas iniciales (dos comunes, dos raras, una épica)
-                let startRarities = [rarityLevels[0], rarityLevels[0], rarityLevels[1], rarityLevels[1], rarityLevels[2]];
-                for (let r of startRarities) {
-                    let p = new Player(r);
-                    team.players.push(p);
-                    gameState.userCollection.push(p);
-                }
-                // 5 adicionales comunes para relleno
-                for (let i=0; i<5; i++) {
-                    let p = new Player(rarityLevels[0]);
-                    team.players.push(p);
-                    gameState.userCollection.push(p);
-                }
-                team.starters = team.players.slice(0,5); // los primeros 5 titulares
-                gameState.teams.push(team);
-                gameState.userTeamObj = team;
-            }
-
-            function generateSchedule() {
-                const numTeams = gameState.teams.length;
-                let pairings = [];
-                for (let i=0; i<numTeams; i++) {
-                    for (let j=i+1; j<numTeams; j++) pairings.push([i, j]);
-                }
-                pairings.sort(() => Math.random() - 0.5);
-                const matchesPerWeek = Math.floor(numTeams/2);
-                const totalWeeks = pairings.length / matchesPerWeek;
-                let weekly = [];
-                for (let w=0; w<totalWeeks; w++) {
-                    weekly.push(pairings.splice(0, matchesPerWeek));
-                }
-                gameState.schedule = weekly;
-            }
-
-            // --------------------------------------------------------------
-            // 5. Lógica de simulación de partidos
-            // --------------------------------------------------------------
-            function calculateTeamPower(team) {
-                return team.starters.reduce((sum, p) => sum + Object.values(p.attributes).reduce((a,b)=>a+b,0), 0);
-            }
-
-            function simulateGame(team1, team2) {
-                const p1 = calculateTeamPower(team1);
-                const p2 = calculateTeamPower(team2);
-                const diff = Math.abs(p1-p2);
-                const upsetChance = Math.max(0, 0.4 - diff/800); // probabilidad de que el débil gane una partida
-                const rand = Math.random();
-                if (p1 > p2) return (rand < upsetChance) ? team2.key : team1.key;
-                else return (rand < upsetChance) ? team1.key : team2.key;
-            }
-
-            function simulateMatch(team1, team2, isBracket = false) {
-                if (!team1.starters.length) team1.starters = team1.players.slice(0,5);
-                if (!team2.starters.length) team2.starters = team2.players.slice(0,5);
-                let g1=0, g2=0;
-                for (let i=0; i<3; i++) {
-                    if (g1===2 || g2===2) break;
-                    let winnerKey = simulateGame(team1, team2);
-                    if (winnerKey === team1.key) g1++; else g2++;
-                }
-                const winnerKey = g1>g2 ? team1.key : team2.key;
-                const loserKey = winnerKey===team1.key ? team2.key : team1.key;
-                const winnerTeam = gameState.teams.find(t=>t.key===winnerKey);
-                const loserTeam = gameState.teams.find(t=>t.key===loserKey);
-
-                // Actualizar estadísticas liga
-                if (!isBracket) {
-                    winnerTeam.wins++; winnerTeam.gamesWon += Math.max(g1,g2);
-                    loserTeam.losses++; loserTeam.gamesLost += Math.max(g1,g2);
-                    loserTeam.gamesWon += Math.min(g1,g2);
-                    winnerTeam.gamesLost += Math.min(g1,g2);
-                }
-                return { winnerKey, loserKey, gamesWon1:g1, gamesWon2:g2, winnerTeam, loserTeam };
-            }
-
-            // --------------------------------------------------------------
-            // 6. Interfaz y renderizado
-            // --------------------------------------------------------------
-            const ui = {
-                // Referencias
-                logDiv: document.getElementById('game-log'),
-                standingsDiv: document.getElementById('league-standings'),
-                matchResults: document.getElementById('match-results-container'),
-                currentWeekSpan: document.getElementById('current-week'),
-                bracketDiv: document.getElementById('bracket-container'),
-                collectionGrid: document.getElementById('collection-grid'),
-                starterDiv: document.getElementById('starter-players'),
-                availableDiv: document.getElementById('available-players'),
-                starterCount: document.getElementById('starter-count'),
-                currencySpan: document.getElementById('currency-amount'),
-                allTeamsContainer: document.getElementById('all-teams-container'),
-                packResult: document.getElementById('pack-result'),
-                packModal: document.getElementById('pack-modal'),
-                packModalCards: document.getElementById('pack-modal-cards'),
-                teamNameInput: document.getElementById('team-name-input'),
-                teamEmojiInput: document.getElementById('team-emoji-input'),
-                // ... añadir más
-            };
-
-            function addSocialPost(message, icon = '📌', type = 'info') {
-                const post = document.createElement('div');
-                post.className = 'toast-msg flex items-center gap-3';
-                post.innerHTML = `<span class="text-2xl">${icon}</span><span>${message}</span>`;
-                ui.logDiv.prepend(post);
-                if (ui.logDiv.children.length > 20) ui.logDiv.lastElementChild.remove();
-            }
-
-            function renderCurrency() {
-                ui.currencySpan.textContent = gameState.userCurrency;
-            }
-
-            // Render colección con filtro
-            function renderCollection() {
-                const filter = document.getElementById('rarity-filter')?.value || 'all';
-                const filtered = gameState.userCollection.filter(p => filter==='all' || p.rarity === filter);
-                ui.collectionGrid.innerHTML = '';
-                filtered.forEach(p => renderPlayerCard(p, ui.collectionGrid, false, true));
-                document.getElementById('collection-count').textContent = gameState.userCollection.length;
-                // mini radar charts after
-                setTimeout(() => filtered.forEach(p => renderRadarChart(p, `coll-${p.id}`)), 30);
-            }
-
-            // Carta genérica
-            function renderPlayerCard(player, container, isStarter = false, collectionView = false) {
-                const card = document.createElement('div');
-                card.className = `player-card ${player.rarityColor} flex flex-col items-center text-center`;
-                card.dataset.playerId = player.id;
-                const chartId = `chart-${player.id}-${Math.random().toString(36)}`;
-                card.innerHTML = `
-                    <span class="text-4xl mb-1">${player.emoji}</span>
-                    <span class="font-bold text-sm leading-tight">${player.name}</span>
-                    <span class="text-xs text-gray-400">${player.nationality}</span>
-                    <div class="w-full h-20 mt-1"><canvas id="${chartId}" class="w-full h-full"></canvas></div>
-                    <span class="mt-1 text-xs px-2 py-0.5 rounded-full bg-slate-700 uppercase">${player.rarity}</span>
-                `;
-                container.appendChild(card);
-                // Evento para seleccionar titular si estamos en equipo
-                if (!collectionView && container.id !== 'collection-grid') {
-                    card.addEventListener('click', () => toggleStarter(player));
-                }
-                // guardar chart
-                setTimeout(() => renderRadarChart(player, chartId), 20);
-            }
-
-            function renderRadarChart(player, canvasId) {
-                const canvas = document.getElementById(canvasId);
-                if (!canvas) return;
-                new Chart(canvas, {
-                    type: 'radar',
-                    data: {
-                        labels: attributes.map(a=>a[0].toUpperCase()+a.slice(1)),
-                        datasets: [{
-                            data: attributes.map(a => player.attributes[a]),
-                            backgroundColor: 'rgba(251,191,36,0.2)',
-                            borderColor: '#fbbf24',
-                            borderWidth: 1,
-                            pointBackgroundColor: '#fbbf24',
-                        }]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: { r: { ticks: { display: false }, max: 100 } },
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
-                    }
-                });
-            }
-
-            function toggleStarter(player) {
-                const user = gameState.userTeamObj;
-                const idx = user.starters.findIndex(s => s.id === player.id);
-                if (idx !== -1) {
-                    user.starters.splice(idx, 1);
-                    sound.play('click');
-                } else {
-                    if (user.starters.length >= 5) {
-                        addSocialPost('No puedes tener más de 5 titulares', '⚠️', 'alert');
-                        return;
-                    }
-                    user.starters.push(player);
-                    sound.play('click');
-                }
-                renderTeamManagement();
-            }
-
-            function renderTeamManagement() {
-                const user = gameState.userTeamObj;
-                ui.starterDiv.innerHTML = '';
-                ui.availableDiv.innerHTML = '';
-                ui.starterCount.textContent = `${user.starters.length}/5`;
-                const available = user.players.filter(p => !user.starters.includes(p));
-                user.starters.forEach(p => renderPlayerCard(p, ui.starterDiv, true, false));
-                available.forEach(p => renderPlayerCard(p, ui.availableDiv, false, false));
-                // actualizar nombre
-                ui.teamNameInput.value = user.name;
-                ui.teamEmojiInput.value = user.emoji;
-            }
-
-            function renderStandings() {
-                const sorted = [...gameState.teams].sort((a,b)=> b.wins - a.wins || b.gamesWon - a.gamesWon);
-                let html = `<table class="w-full text-sm"><thead class="bg-slate-800"><tr><th>#</th><th>Equipo</th><th>V</th><th>D</th><th>JG</th><th>JP</th></tr></thead><tbody>`;
-                sorted.forEach((t,i) => {
-                    html += `<tr class="border-b border-slate-700 ${t.isUserTeam ? 'bg-amber-900/30' : ''}"><td class="p-2">${i+1}</td><td>${t.emoji} ${t.name}</td><td>${t.wins}</td><td>${t.losses}</td><td>${t.gamesWon}</td><td>${t.gamesLost}</td></tr>`;
-                });
-                html += '</tbody></table>';
-                ui.standingsDiv.innerHTML = html;
-            }
-
-            function renderMatchResults() {
-                if (gameState.currentWeek < gameState.schedule.length) {
-                    const weekMatches = gameState.schedule[gameState.currentWeek];
-                    ui.matchResults.innerHTML = weekMatches.map(([i,j]) => {
-                        const t1 = gameState.teams[i], t2 = gameState.teams[j];
-                        return `<div class="bg-slate-800 p-3 rounded-xl"><div class="flex justify-between"><span>${t1.emoji} ${t1.name}</span><span>vs</span><span>${t2.emoji} ${t2.name}</span></div></div>`;
-                    }).join('');
-                } else ui.matchResults.innerHTML = '<p class="text-center">Temporada regular finalizada</p>';
-                ui.currentWeekSpan.textContent = gameState.currentWeek;
-            }
-
-            function renderBracket() {
-                if (gameState.bracket.phase === 'regular') {
-                    ui.bracketDiv.innerHTML = '<p class="text-gray-400">El bracket se mostrará al finalizar la temporada regular.</p>';
-                    return;
-                }
-                let html = '<div class="grid md:grid-cols-3 gap-4">';
-                ['wbHistory','lbHistory','gfHistory'].forEach((hist,i) => {
-                    let title = i===0 ? 'Ganadores' : (i===1 ? 'Perdedores' : 'Gran Final');
-                    html += `<div><h3 class="font-bold">${title}</h3>`;
-                    gameState.bracket[hist].forEach(m => {
-                        if (m.winnerTeam)
-                            html += `<div class="bg-slate-800 p-2 rounded mb-2">${m.winnerTeam.emoji} vence a ${m.loserTeam?.emoji} (${m.gamesWon1}-${m.gamesWon2})</div>`;
-                    });
-                    html += '</div>';
-                });
-                html += '</div>';
-                ui.bracketDiv.innerHTML = html;
-            }
-
-            function renderAllTeams() {
-                ui.allTeamsContainer.innerHTML = gameState.teams.map(t => `
-                    <div class="bg-slate-800 p-4 rounded-xl">
-                        <h3 class="text-xl font-bold mb-2">${t.emoji} ${t.name}</h3>
-                        <div class="flex flex-wrap gap-2">${t.players.slice(0,5).map(p => `<span class="bg-slate-700 px-2 py-1 rounded text-xs">${p.emoji} ${p.name}</span>`).join('')}</div>
-                    </div>`).join('');
-            }
-
-            function renderAll() {
-                renderCurrency();
-                renderStandings();
-                renderMatchResults();
-                renderBracket();
-                renderCollection();
-                renderTeamManagement();
-                renderAllTeams();
-            }
-
-            // --------------------------------------------------------------
-            // 7. Apertura de sobres
-            // --------------------------------------------------------------
-            function openPack(isPremium = false) {
-                const cost = isPremium ? 250 : 100;
-                if (gameState.userCurrency < cost) {
-                    addSocialPost('No tienes suficientes 🪙', '😭', 'error'); return;
-                }
-                gameState.userCurrency -= cost;
-                sound.play('packOpen');
-                // generar cartas
-                let newCards = [];
-                const cardCount = isPremium ? 5 : 3;
-                for (let i=0; i<cardCount; i++) {
-                    let rar;
-                    if (isPremium) {
-                        const r = Math.random()*100;
-                        if (r<50) rar = rarityLevels[0];
-                        else if (r<75) rar = rarityLevels[1];
-                        else if (r<93) rar = rarityLevels[2];
-                        else rar = rarityLevels[3];
-                    } else {
-                        const r = Math.random()*100;
-                        if (r<70) rar = rarityLevels[0];
-                        else if (r<92) rar = rarityLevels[1];
-                        else rar = rarityLevels[2];
-                    }
-                    let p = new Player(rar);
-                    gameState.userCollection.push(p);
-                    gameState.userTeamObj.players.push(p); // también en plantilla
-                    newCards.push(p);
-                    if (rar.name === 'legendary') sound.play('rare');
-                }
-                renderAll();
-                // mostrar modal
-                ui.packModalCards.innerHTML = '';
-                newCards.forEach(p => {
-                    let div = document.createElement('div');
-                    div.className = `player-card ${p.rarityColor} p-2`;
-                    div.innerHTML = `<span class="text-5xl">${p.emoji}</span><span class="font-bold text-sm">${p.name}</span><span class="text-xs uppercase">${p.rarity}</span>`;
-                    ui.packModalCards.appendChild(div);
-                });
-                ui.packModal.classList.remove('hidden');
-                addSocialPost(`¡Has abierto un sobre y obtenido ${newCards.length} cartas!`, '🎁');
-            }
-
-            // --------------------------------------------------------------
-            // 8. Simulación de siguiente paso
-            // --------------------------------------------------------------
-            function nextStep() {
-                if (gameState.bracket.winner) { alert('Temporada terminada, inicia una nueva'); return; }
-                const user = gameState.userTeamObj;
-                if (gameState.bracket.phase === 'regular') {
-                    if (gameState.currentWeek >= gameState.schedule.length) {
-                        // pasar a bracket
-                        const sorted = [...gameState.teams].sort((a,b)=> b.wins - a.wins || b.gamesWon - a.gamesWon);
-                        const top4 = sorted.slice(0,4);
-                        gameState.bracket.phase = 'wb1';
-                        gameState.bracket.pendingMatches = [
-                            {team1: top4[0], team2: top4[3]},
-                            {team1: top4[1], team2: top4[2]}
-                        ];
-                        document.getElementById('next-step-btn').textContent = '▶️ Siguiente ronda playoff';
-                        renderAll(); return;
-                    }
-                    // simular jornada
-                    const weekMatches = gameState.schedule[gameState.currentWeek];
-                    weekMatches.forEach(([i,j]) => {
-                        const t1 = gameState.teams[i], t2 = gameState.teams[j];
-                        const result = simulateMatch(t1, t2);
-                        gameState.results.push(result);
-                        // si participa usuario, dar monedas y registrar
-                        if (t1.isUserTeam || t2.isUserTeam) {
-                            gameState.userCurrency += 25; // participación
-                            let op = t1.isUserTeam ? t2 : t1;
-                            gameState.userMatchHistory.push({ opponent: op.name, result: result.winnerTeam.isUserTeam ? 'win' : 'loss' });
-                        }
-                    });
-                    gameState.currentWeek++;
-                    addSocialPost(`Jornada ${gameState.currentWeek} completada`, '⚔️');
-                    renderAll();
-                } else {
-                    // lógica playoffs (simplificada, pero funcional)
-                    if (gameState.bracket.pendingMatches.length) {
-                        let match = gameState.bracket.pendingMatches.shift();
-                        let res = simulateMatch(match.team1, match.team2, true);
-                        gameState.bracket.wbHistory.push(res);
-                        if (gameState.bracket.phase === 'wb1') {
-                            // mover perdedores a losers bracket
-                            // (implementación reducida para demo)
-                        }
-                        // dar monedas extra al usuario si gana
-                        if (res.winnerTeam.isUserTeam) gameState.userCurrency += 75;
-                        addSocialPost(`Playoff: ${res.winnerTeam.emoji} gana`, '🏆');
-                    } else {
-                        // final
-                        gameState.bracket.winner = gameState.teams.find(t=>t.isUserTeam) || gameState.teams[0];
-                        addSocialPost(`¡${gameState.bracket.winner.emoji} Campeón!`, '👑');
-                        document.getElementById('next-step-btn').disabled = true;
-                        document.getElementById('new-season-btn').classList.remove('hidden');
-                    }
-                    renderAll();
-                }
-                renderCurrency();
-            }
-
-            // --------------------------------------------------------------
-            // 9. Inicialización
-            // --------------------------------------------------------------
-            function initGame() {
-                // Crear equipos IA y usuario
-                generateAITeams(5);
-                createUserTeam();
-                generateSchedule();
-                renderAll();
-
-                // Eventos
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-                        document.getElementById(btn.dataset.tab + '-panel').classList.remove('hidden');
-                    });
-                });
-
-                document.getElementById('next-step-btn').addEventListener('click', nextStep);
-                document.getElementById('new-season-btn').addEventListener('click', () => {
-                    // reset básico (manteniendo colección y monedas)
-                    gameState.teams = gameState.teams.filter(t => t.isUserTeam); // solo el user
-                    gameState.teams[0].wins=0; gameState.teams[0].losses=0; gameState.teams[0].gamesWon=0; gameState.teams[0].gamesLost=0;
-                    generateAITeams(5);
-                    generateSchedule();
-                    gameState.currentWeek = 0;
-                    gameState.bracket = { phase: 'regular', pendingMatches: [], wbHistory: [], lbHistory: [], gfHistory: [], winner: null };
-                    document.getElementById('next-step-btn').disabled = false;
-                    document.getElementById('next-step-btn').textContent = '⏩ Siguiente jornada';
-                    document.getElementById('new-season-btn').classList.add('hidden');
-                    addSocialPost('¡Nueva temporada comienza!', '🌟');
-                    renderAll();
-                });
-
-                document.getElementById('open-basic-pack').addEventListener('click', () => openPack(false));
-                document.getElementById('open-premium-pack').addEventListener('click', () => openPack(true));
-                document.getElementById('close-pack-modal').addEventListener('click', () => {
-                    ui.packModal.classList.add('hidden');
-                });
-
-                document.getElementById('update-team-btn').addEventListener('click', () => {
-                    let newName = ui.teamNameInput.value.trim();
-                    let newEmoji = ui.teamEmojiInput.value.trim();
-                    if (newName) gameState.userTeamObj.name = newName;
-                    if (newEmoji) gameState.userTeamObj.emoji = newEmoji;
-                    renderAll();
-                });
-
-                document.getElementById('toggle-sound').addEventListener('click', (e) => {
-                    const muted = sound.toggle();
-                    e.target.textContent = muted ? '🔇' : '🔊';
-                });
-
-                document.getElementById('rarity-filter')?.addEventListener('change', renderCollection);
-            }
-
-            window.onload = initGame;
-        })();
-    </script>
+// ===== INIT =====
+window.addEventListener('load', async () => {
+  Game.init();
+  if (localStorage.getItem('mizu::reducedMotion')==='true') document.body.classList.add('reduced-motion');
+  document.getElementById('soundBtn').textContent = Game.state.sound ? '🔊' : '🔇';
+  
+  // Subscribe to events for dashboard update
+  Game.state.events.forEach(e => {
+    // Could broadcast to open dashboard pages in v4
+  });
+  
+  Mizu.init();
+  console.log('✅ Prototipo 3 v2: MOBA Manager JUGABLE + Mizu Base');
+});
+</script>
 </body>
 </html>
